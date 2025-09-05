@@ -7,6 +7,7 @@
     "counter-cli",
     "counter-contract",
     "bulletin-board",
+    "bulletin-board-cli",
     "frontend-vite-react"
   ],
   "scripts": {

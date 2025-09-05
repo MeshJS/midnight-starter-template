@@ -1,5 +1,5 @@
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { Counter, type CounterPrivateState, witnesses } from '@meshsdk/counter-contract';
+import { Board, type BBoardPrivateState, createBBoardPrivateState, witnesses } from '@meshsdk/board-contract';
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -21,10 +21,10 @@ import { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import {
-  type CounterContract,
-  type CounterPrivateStateId,
-  type CounterProviders,
-  type DeployedCounterContract,
+  type BboardContract,
+  BboardPrivateStateId,
+  type BboardProviders,
+  type DeployedBboardContract,
 } from './common-types';
 import { type Config, contractConfig } from './config';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
@@ -39,52 +39,51 @@ let logger: Logger;
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
 globalThis.WebSocket = WebSocket;
 
-export const getCounterLedgerState = async (
-  providers: CounterProviders,
+export const getBboardLedgerState = async (
+  providers: BboardProviders,
   contractAddress: ContractAddress,
-): Promise<bigint | null> => {
+): Promise<Board.Ledger | null> => {
   assertIsContractAddress(contractAddress);
   logger.info('Checking contract ledger state...');
   const state = await providers.publicDataProvider
     .queryContractState(contractAddress)
-    .then((contractState) => (contractState != null ? Counter.ledger(contractState.data).round : null));
+    .then((contractState) => (contractState != null ? Board.ledger(contractState.data) : null));
   logger.info(`Ledger state: ${state}`);
   return state;
 };
 
-export const counterContractInstance: CounterContract = new Counter.Contract(witnesses);
+export const bboardContractInstance: BboardContract = new Board.Contract(witnesses);
 
 export const joinContract = async (
-  providers: CounterProviders,
-  contractAddress: string,
-): Promise<DeployedCounterContract> => {
-  const counterContract = await findDeployedContract(providers, {
+  providers: BboardProviders,
+  contractAddress: ContractAddress,
+): Promise<DeployedBboardContract> => {
+  const bboardContract = await findDeployedContract<BboardContract>(providers, {
     contractAddress,
-    contract: counterContractInstance,
-    privateStateId: 'counterPrivateState',
-    initialPrivateState: { privateCounter: 0 },
+    contract: bboardContractInstance,
+    privateStateId: 'bboardPrivateState',
+    initialPrivateState: await getPrivateState(providers),
   });
-  logger.info(`Joined contract at address: ${counterContract.deployTxData.public.contractAddress}`);
-  return counterContract;
+  logger.info(`Joined contract at address: ${bboardContract.deployTxData.public.contractAddress}`);
+  return bboardContract;
 };
 
 export const deploy = async (
-  providers: CounterProviders,
-  privateState: CounterPrivateState,
-): Promise<DeployedCounterContract> => {
+  providers: BboardProviders  
+): Promise<DeployedBboardContract> => {
   logger.info('Deploying counter contract...');
-  const counterContract = await deployContract(providers, {
-    contract: counterContractInstance,
-    privateStateId: 'counterPrivateState',
-    initialPrivateState: privateState,
+  const bboardContract = await deployContract(providers, {
+    contract: bboardContractInstance,
+    privateStateId: 'bboardPrivateState',
+    initialPrivateState: await getPrivateState(providers),
   });
-  logger.info(`Deployed contract at address: ${counterContract.deployTxData.public.contractAddress}`);
-  return counterContract;
+  logger.info(`Deployed contract at address: ${bboardContract.deployTxData.public.contractAddress}`);
+  return bboardContract;
 };
 
-export const increment = async (counterContract: DeployedCounterContract): Promise<FinalizedTxData> => {
-  logger.info('Incrementing...');
-  const finalizedTxData = await counterContract.callTx.increment();
+export const post = async (bboardContract: DeployedBboardContract, message: string): Promise<FinalizedTxData> => {
+  logger.info('Posting...');
+  const finalizedTxData = await bboardContract.callTx.post(message);
   logger.info({
     section: 'General Section',
     tx: finalizedTxData.public.tx,
@@ -134,18 +133,70 @@ export const increment = async (counterContract: DeployedCounterContract): Promi
   return finalizedTxData.public;
 };
 
-export const displayCounterValue = async (
-  providers: CounterProviders,
-  counterContract: DeployedCounterContract,
-): Promise<{ counterValue: bigint | null; contractAddress: string }> => {
-  const contractAddress = counterContract.deployTxData.public.contractAddress;
-  const counterValue = await getCounterLedgerState(providers, contractAddress);
-  if (counterValue === null) {
-    logger.info(`There is no counter contract deployed at ${contractAddress}.`);
+export const takeDown = async (bboardContract: DeployedBboardContract): Promise<FinalizedTxData> => {
+  logger.info('Taking Down...');
+  const finalizedTxData = await bboardContract.callTx.takeDown();
+  logger.info({
+    section: 'General Section',
+    tx: finalizedTxData.public.tx,
+    txHash: finalizedTxData.public.txHash,
+    txId: finalizedTxData.public.txId,
+    blockHeight: finalizedTxData.public.blockHeight,
+    blockHash: finalizedTxData.public.blockHash,
+    nextContractState: finalizedTxData.public.nextContractState,
+    publicTranscript: finalizedTxData.public.publicTranscript,
+    status: finalizedTxData.public.status,
+  });
+
+  logger.info({
+    section: 'Guaranteed-Effects',
+    claimedContractCalls: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedContractCalls,
+    claimedNullifiers: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedNullifiers,
+    claimedReceives: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedReceives,
+    claimedSpends: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedSpends,
+    mints: finalizedTxData.public.partitionedTranscript[0]?.effects.mints,
+    gas: finalizedTxData.public.partitionedTranscript[0]?.gas,
+    program: finalizedTxData.public.partitionedTranscript[0]?.program,
+  });
+
+  logger.info({
+    section: 'Fallible-Effects',
+    claimedContractCalls: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedContractCalls,
+    claimedNullifiers: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedNullifiers,
+    claimedReceives: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedReceives,
+    claimedSpends: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedSpends,
+    mints: finalizedTxData.public.partitionedTranscript[1]?.effects.mints,
+    gas: finalizedTxData.public.partitionedTranscript[1]?.gas,
+    program: finalizedTxData.public.partitionedTranscript[1]?.program,
+  });
+
+  logger.info({
+    section: 'Private Section',
+    Inputs: finalizedTxData.private.input,
+    newCoins: finalizedTxData.private.newCoins,
+    nextPrivateState: finalizedTxData.private.nextPrivateState,
+    nextZswapLocalState: finalizedTxData.private.nextZswapLocalState,
+    Output: finalizedTxData.private.output,
+    privateTranscriptOutputs: finalizedTxData.private.privateTranscriptOutputs,
+    result: finalizedTxData.private.result,
+    unprovenTx: finalizedTxData.private.unprovenTx,
+  });
+
+  return finalizedTxData.public;
+};
+
+export const displayLedgerState = async (
+  providers: BboardProviders,
+  bboardContract: DeployedBboardContract,
+): Promise<{ ledgerState: Board.Ledger | null; contractAddress: string }> => {
+  const contractAddress = bboardContract.deployTxData.public.contractAddress;
+  const ledgerState = await getBboardLedgerState(providers, contractAddress);
+  if (ledgerState === null) {
+    logger.info(`There is no bboard contract deployed at ${contractAddress}.`);
   } else {
-    logger.info(`Current counter value: ${Number(counterValue)}`);
+    logger.info(`Current ledger state: ${ledgerState}`);
   }
-  return { contractAddress, counterValue };
+  return { contractAddress, ledgerState };
 };
 
 export const createWalletAndMidnightProvider = async (wallet: Wallet): Promise<WalletProvider & MidnightProvider> => {
@@ -258,7 +309,7 @@ export const buildWalletAndWaitForFunds = async (
         const stateObject = JSON.parse(serialized);
         if ((await isAnotherChain(wallet, Number(stateObject.offset))) === true) {
           logger.warn('The chain was reset, building wallet from scratch');
-          wallet = await WalletBuilder.buildFromSeed(
+          wallet = await WalletBuilder.build(
             indexer,
             indexerWS,
             proofServer,
@@ -278,7 +329,7 @@ export const buildWalletAndWaitForFunds = async (
             logger.info(`SyncProgress.lag.applyGap: ${newState.syncProgress?.lag.applyGap}`);
             logger.info(`SyncProgress.lag.sourceGap: ${newState.syncProgress?.lag.sourceGap}`);
             logger.warn('Wallet was not able to sync from restored state, building wallet from scratch');
-            wallet = await WalletBuilder.buildFromSeed(
+            wallet = await WalletBuilder.build(
               indexer,
               indexerWS,
               proofServer,
@@ -299,7 +350,7 @@ export const buildWalletAndWaitForFunds = async (
           logger.error(error);
         }
         logger.warn('Wallet was not able to restore using the stored state, building wallet from scratch');
-        wallet = await WalletBuilder.buildFromSeed(
+        wallet = await WalletBuilder.build(
           indexer,
           indexerWS,
           proofServer,
@@ -312,7 +363,7 @@ export const buildWalletAndWaitForFunds = async (
       }
     } else {
       logger.info('Wallet save file not found, building wallet from scratch');
-      wallet = await WalletBuilder.buildFromSeed(
+      wallet = await WalletBuilder.build(
         indexer,
         indexerWS,
         proofServer,
@@ -325,7 +376,7 @@ export const buildWalletAndWaitForFunds = async (
     }
   } else {
     logger.info('File path for save file not found, building wallet from scratch');
-    wallet = await WalletBuilder.buildFromSeed(
+    wallet = await WalletBuilder.build(
       indexer,
       indexerWS,
       proofServer,
@@ -356,17 +407,22 @@ export const randomBytes = (length: number): Uint8Array => {
   return bytes;
 };
 
+export const getPrivateState = async (providers: BboardProviders): Promise<BBoardPrivateState> => {
+  const existingPrivateState = await providers.privateStateProvider.get(BboardPrivateStateId);
+  return existingPrivateState ?? createBBoardPrivateState(randomBytes(32));
+}
+
 export const buildFreshWallet = async (config: Config): Promise<Wallet & Resource> =>
   await buildWalletAndWaitForFunds(config, toHex(randomBytes(32)), '');
 
 export const configureProviders = async (wallet: Wallet & Resource, config: Config) => {
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(wallet);
   return {
-    privateStateProvider: levelPrivateStateProvider<typeof CounterPrivateStateId>({
+    privateStateProvider: levelPrivateStateProvider<typeof BboardPrivateStateId>({
       privateStateStoreName: contractConfig.privateStateStoreName,
     }),
     publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
-    zkConfigProvider: new NodeZkConfigProvider<'increment'>(contractConfig.zkConfigPath),
+    zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(contractConfig.zkConfigPath),
     proofProvider: httpClientProofProvider(config.proofServer),
     walletProvider: walletAndMidnightProvider,
     midnightProvider: walletAndMidnightProvider,

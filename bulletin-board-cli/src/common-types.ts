@@ -1,25 +1,32 @@
-import { Counter, type CounterPrivateState } from '@meshsdk/counter-contract';
+import { Board, type BBoardPrivateState } from '@meshsdk/board-contract';
 import type { ImpureCircuitId, MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import type { DeployedContract, FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
 
-export type CounterCircuits = ImpureCircuitId<Counter.Contract<CounterPrivateState>>;
+export type BboardCircuits = ImpureCircuitId<Board.Contract<BBoardPrivateState>>;
 
-export const CounterPrivateStateId = 'counterPrivateState';
+export const BboardPrivateStateId = 'bboardPrivateState';
 
-export type CounterProviders = MidnightProviders<CounterCircuits, typeof CounterPrivateStateId, CounterPrivateState>;
+export type BboardProviders = MidnightProviders<BboardCircuits, typeof BboardPrivateStateId, BBoardPrivateState>;
 
-export type CounterContract = Counter.Contract<CounterPrivateState>;
+export type BboardContract = Board.Contract<BBoardPrivateState>;
 
-export type DeployedCounterContract = DeployedContract<CounterContract> | FoundContract<CounterContract>;
+export type DeployedBboardContract = DeployedContract<BboardContract> | FoundContract<BboardContract>;
 
 export type UserAction = {
-  increment: string | undefined;  
+  post: string | undefined;  
+  takeDown: string | undefined;
 };
 
-export type DerivedState = {
-  readonly round: Counter.Ledger["round"];
+export type DerivedState = {  
+  readonly state: Board.Ledger["state"];
+  readonly sequence: Board.Ledger["instance"];
+  readonly message: Board.Ledger["message"];
+  readonly isOwner: boolean;
 };
 
 export const emptyState: DerivedState = {
-  round: 0n,
+  state: Board.STATE.vacant,
+  sequence: 0n,
+  message: { is_some: false, value: '' },
+  isOwner: false,
 };

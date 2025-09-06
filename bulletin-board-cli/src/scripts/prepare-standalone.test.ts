@@ -5,7 +5,7 @@ import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import type { Resource } from '@midnight-ntwrk/wallet';
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { type CounterProviders } from '../common-types';
+import { type BboardProviders } from '../common-types';
 import * as api from '../api';
 import { currentDir } from '../config';
 import { createLogger } from '../logger-utils';
@@ -19,7 +19,7 @@ const logger = await createLogger(logDir);
 describe('Prepare Standalone', () => {
   let testEnvironment: TestEnvironment;
   let wallet: Wallet & Resource;
-  let providers: CounterProviders;
+  let providers: BboardProviders;
   let keepAliveInterval: NodeJS.Timeout;
 
   async function sendNativeToken(address: string, amount: bigint): Promise<string> {

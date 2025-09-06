@@ -1,4 +1,4 @@
-import { type Config, StandaloneConfig, currentDir, TestnetRemoteConfig } from '../config';
+import { type Config, StandaloneConfig, currentDir, TestnetRemoteConfig } from '../../config';
 import {
   DockerComposeEnvironment,
   GenericContainer,
@@ -7,7 +7,7 @@ import {
   Wait,
 } from 'testcontainers';
 import path from 'path';
-import * as api from '../api';
+import * as api from '../../api';
 import * as Rx from 'rxjs';
 import { nativeToken } from '@midnight-ntwrk/ledger';
 import type { Logger } from 'pino';
@@ -172,8 +172,8 @@ export class TestEnvironment {
       this.testConfig.dappConfig,
       this.testConfig.seed,
       this.testConfig.cacheFileName,
-    );    
-    const state = await Rx.firstValueFrom(this.wallet.state());    
+    );
+    const state = await Rx.firstValueFrom(this.wallet.state());
     return this.wallet;
   };
 

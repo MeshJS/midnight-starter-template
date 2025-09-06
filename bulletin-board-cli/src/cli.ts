@@ -63,28 +63,35 @@ const mainLoop = async (providers: BboardProviders, rli: Interface): Promise<voi
   while (true) {
     const choice = await rli.question(MAIN_LOOP_QUESTION);
     switch (choice) {
-      case '1':
+      case '1': {
         const message = await rli.question(`What message do you want to post? `);
         await api.post(bboardContract, message);
         break;
-      case '2':
+      }
+      case '2': {
         await api.takeDown(bboardContract);
         break;
-        case '3':
-          await api.displayLedgerState(providers, bboardContract);
-          break;
-        case '4':
-          await api.getPrivateState(providers);
-          break;
-        case '5':
-          const state = await api.displayLedgerState(providers, bboardContract);
-          api.displayDerivedState(providers, state.ledgerState, logger);
-          break;
-        case '6':
-          logger.info('Exiting...');
-          return;
-        default:
-          logger.error(`Invalid choice: ${choice}`);
+      }
+      case '3': {
+        await api.displayLedgerState(providers, bboardContract);
+        break;
+      }
+      case '4': {
+        await api.getPrivateState(providers);
+        break;
+      }
+      case '5': {
+        const state = await api.displayLedgerState(providers, bboardContract);
+        await api.displayDerivedState(providers, state.ledgerState, logger);
+        break;
+      }
+      case '6': {
+        logger.info('Exiting...');
+        return;
+      }
+      default: {
+        logger.error(`Invalid choice: ${choice}`);
+      }
     }
   }
 };

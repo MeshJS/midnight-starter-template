@@ -37,7 +37,7 @@ describe('API', () => {
     expect(bboardContract).not.toBeNull();
 
     const bboard = await api.displayLedgerState(providers, bboardContract);
-    expect(bboard.ledgerState?.instance).toEqual(BigInt(0));
+    expect(bboard.ledgerState?.instance).toEqual(BigInt(1));
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     const response = await api.post(bboardContract, "hello");

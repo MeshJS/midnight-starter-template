@@ -9,7 +9,6 @@ import {
 import path from 'path';
 import * as api from '../../api';
 import * as Rx from 'rxjs';
-import { nativeToken } from '@midnight-ntwrk/ledger';
 import type { Logger } from 'pino';
 import type { Wallet } from '@midnight-ntwrk/wallet-api';
 import type { Resource } from '@midnight-ntwrk/wallet';

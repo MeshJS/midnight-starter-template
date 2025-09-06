@@ -4,7 +4,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { createInterface, type Interface } from 'node:readline/promises';
 import { type Logger } from 'pino';
 import { type StartedDockerComposeEnvironment, type DockerComposeEnvironment } from 'testcontainers';
-import { type CounterProviders, type DeployedCounterContract } from './common-types';
+import { type BboardProviders, type DeployedBboardContract } from './common-types';
 import { type Config, StandaloneConfig } from './config';
 import * as api from './api';
 
@@ -18,29 +18,32 @@ const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000
 
 const DEPLOY_OR_JOIN_QUESTION = `
 You can do one of the following:
-  1. Deploy a new counter contract
-  2. Join an existing counter contract
+  1. Deploy a new bulletin board contract
+  2. Join an existing bulletin board contract
   3. Exit
 Which would you like to do? `;
 
 const MAIN_LOOP_QUESTION = `
 You can do one of the following:
-  1. Increment
-  2. Display current counter value
-  3. Exit
+  1. Post a message
+  2. Take down your message
+  3. Display the current ledger state (known by everyone)
+  4. Display the current private state (known only to this DApp instance)
+  5. Display the current derived state (known only to this DApp instance)
+  6. Exit
 Which would you like to do? `;
 
-const join = async (providers: CounterProviders, rli: Interface): Promise<DeployedCounterContract> => {
+const join = async (providers: BboardProviders, rli: Interface): Promise<DeployedBboardContract> => {
   const contractAddress = await rli.question('What is the contract address (in hex)? ');
   return await api.joinContract(providers, contractAddress);
 };
 
-const deployOrJoin = async (providers: CounterProviders, rli: Interface): Promise<DeployedCounterContract | null> => {
+const deployOrJoin = async (providers: BboardProviders, rli: Interface): Promise<DeployedBboardContract | null> => {
   while (true) {
     const choice = await rli.question(DEPLOY_OR_JOIN_QUESTION);
     switch (choice) {
       case '1':
-        return await api.deploy(providers, { privateCounter: 0 });
+        return await api.deploy(providers);
       case '2':
         return await join(providers, rli);
       case '3':
@@ -52,25 +55,36 @@ const deployOrJoin = async (providers: CounterProviders, rli: Interface): Promis
   }
 };
 
-const mainLoop = async (providers: CounterProviders, rli: Interface): Promise<void> => {
-  const counterContract = await deployOrJoin(providers, rli);
-  if (counterContract === null) {
+const mainLoop = async (providers: BboardProviders, rli: Interface): Promise<void> => {
+  const bboardContract = await deployOrJoin(providers, rli);
+  if (bboardContract === null) {
     return;
   }
   while (true) {
     const choice = await rli.question(MAIN_LOOP_QUESTION);
     switch (choice) {
       case '1':
-        await api.increment(counterContract);
+        const message = await rli.question(`What message do you want to post? `);
+        await api.post(bboardContract, message);
         break;
       case '2':
-        await api.displayCounterValue(providers, counterContract);
+        await api.takeDown(bboardContract);
         break;
-      case '3':
-        logger.info('Exiting...');
-        return;
-      default:
-        logger.error(`Invalid choice: ${choice}`);
+        case '3':
+          await api.displayLedgerState(providers, bboardContract);
+          break;
+        case '4':
+          await api.getPrivateState(providers);
+          break;
+        case '5':
+          const state = await api.displayLedgerState(providers, bboardContract);
+          api.displayDerivedState(providers, state.ledgerState, logger);
+          break;
+        case '6':
+          logger.info('Exiting...');
+          return;
+        default:
+          logger.error(`Invalid choice: ${choice}`);
     }
   }
 };
@@ -125,10 +139,10 @@ export const run = async (config: Config, _logger: Logger, dockerEnv?: DockerCom
     env = await dockerEnv.up();
 
     if (config instanceof StandaloneConfig) {
-      config.indexer = mapContainerPort(env, config.indexer, 'counter-indexer');
-      config.indexerWS = mapContainerPort(env, config.indexerWS, 'counter-indexer');
-      config.node = mapContainerPort(env, config.node, 'counter-node');
-      config.proofServer = mapContainerPort(env, config.proofServer, 'counter-proof-server');
+      config.indexer = mapContainerPort(env, config.indexer, 'bulletin-board-indexer');
+      config.indexerWS = mapContainerPort(env, config.indexerWS, 'bulletin-board-indexer');
+      config.node = mapContainerPort(env, config.node, 'bulletin-board-node');
+      config.proofServer = mapContainerPort(env, config.proofServer, 'bulletin-board-proof-server');
     }
   }
   const wallet = await buildWallet(config, rli);

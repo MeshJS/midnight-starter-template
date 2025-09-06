@@ -1,4 +1,4 @@
-import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
+import { convert_bigint_to_Uint8Array, type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { Board, type BBoardPrivateState, createBBoardPrivateState, witnesses } from '@meshsdk/board-contract';
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
@@ -22,6 +22,7 @@ import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import {
   type BboardContract,
+  BboardDerivedState,
   BboardPrivateStateId,
   type BboardProviders,
   type DeployedBboardContract,
@@ -411,6 +412,25 @@ export const getPrivateState = async (providers: BboardProviders): Promise<BBoar
   const existingPrivateState = await providers.privateStateProvider.get(BboardPrivateStateId);
   return existingPrivateState ?? createBBoardPrivateState(randomBytes(32));
 }
+
+export const displayDerivedState = async (providers: BboardProviders, ledgerState: Board.Ledger | null, logger: Logger) => {
+  if (ledgerState === null) {
+    logger.info(`No bulletin board state currently available`);
+  } else {
+    const boardState = ledgerState.state === Board.STATE.occupied ? 'occupied' : 'vacant';
+    const latestMessage = ledgerState.state === Board.STATE.occupied ? ledgerState.message.value : 'none';
+    const owner = toHex(ledgerState.poster);
+    const privateState = await getPrivateState(providers);
+    const hashedSecretKey = Board.pureCircuits.publicKey(
+      privateState.secretKey,
+      convert_bigint_to_Uint8Array(32, ledgerState.instance),
+    );
+    logger.info(`Current state is: '${boardState}'`);
+    logger.info(`Current message is: '${latestMessage}'`);
+    logger.info(`Current sequence is: ${ledgerState.instance}`);
+    logger.info(`Current owner is: '${owner === toHex(hashedSecretKey) ? 'you' : 'not you'}'`);
+  }
+};
 
 export const buildFreshWallet = async (config: Config): Promise<Wallet & Resource> =>
   await buildWalletAndWaitForFunds(config, toHex(randomBytes(32)), '');

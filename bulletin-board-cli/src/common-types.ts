@@ -17,14 +17,14 @@ export type UserAction = {
   takeDown: string | undefined;
 };
 
-export type DerivedState = {  
+export type BboardDerivedState = {  
   readonly state: Board.Ledger["state"];
   readonly sequence: Board.Ledger["instance"];
   readonly message: Board.Ledger["message"];
   readonly isOwner: boolean;
 };
 
-export const emptyState: DerivedState = {
+export const emptyState: BboardDerivedState = {
   state: Board.STATE.vacant,
   sequence: 0n,
   message: { is_some: false, value: '' },

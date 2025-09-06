@@ -1,4 +1,4 @@
-import { type Config, StandaloneConfig, currentDir, TestnetRemoteConfig } from '../config';
+import { type Config, StandaloneConfig, currentDir, TestnetRemoteConfig } from '../../config';
 import {
   DockerComposeEnvironment,
   GenericContainer,
@@ -7,13 +7,12 @@ import {
   Wait,
 } from 'testcontainers';
 import path from 'path';
-import * as api from '../api';
+import * as api from '../../api';
 import * as Rx from 'rxjs';
 import { nativeToken } from '@midnight-ntwrk/ledger';
 import type { Logger } from 'pino';
 import type { Wallet } from '@midnight-ntwrk/wallet-api';
 import type { Resource } from '@midnight-ntwrk/wallet';
-import { expect } from 'vitest';
 
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
@@ -172,8 +171,8 @@ export class TestEnvironment {
       this.testConfig.dappConfig,
       this.testConfig.seed,
       this.testConfig.cacheFileName,
-    );    
-    const state = await Rx.firstValueFrom(this.wallet.state());    
+    );
+    const state = await Rx.firstValueFrom(this.wallet.state());
     return this.wallet;
   };
 

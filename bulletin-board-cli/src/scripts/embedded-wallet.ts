@@ -1,4 +1,4 @@
-import { TestEnvironment } from '../test/commons';
+import { TestEnvironment } from '../test/simulators/test-environment';
 import path from 'path';
 import { createLogger } from '../logger-utils';
 import { currentDir } from '../config';

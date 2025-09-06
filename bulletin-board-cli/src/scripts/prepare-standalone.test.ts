@@ -1,5 +1,5 @@
 import path from 'path';
-import { TestEnvironment } from '../test/commons';
+import { TestEnvironment } from '../test/simulators/test-environment';
 import { nativeToken, tokenType } from '@midnight-ntwrk/ledger';
 import { type Wallet } from '@midnight-ntwrk/wallet-api';
 import type { Resource } from '@midnight-ntwrk/wallet';
@@ -61,7 +61,7 @@ describe('Prepare Standalone', () => {
     1000 * 60 * 60 * 24 * 7,
   );
 
-  it('Initialize standalone', async () => {    
+  it('Initialize standalone', async () => {
     await sendNativeToken(my_own_wallet, 10000n * 1000000n);
     logger.info('funded');
   });

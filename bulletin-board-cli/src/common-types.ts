@@ -4,7 +4,7 @@ import type { DeployedContract, FoundContract } from '@midnight-ntwrk/midnight-j
 
 export type BboardCircuits = ImpureCircuitId<Board.Contract<BBoardPrivateState>>;
 
-export const BboardPrivateStateId = 'bboardPrivateState';
+export const BboardPrivateStateId = 'bboardPrivateState' ;
 
 export type BboardProviders = MidnightProviders<BboardCircuits, typeof BboardPrivateStateId, BBoardPrivateState>;
 

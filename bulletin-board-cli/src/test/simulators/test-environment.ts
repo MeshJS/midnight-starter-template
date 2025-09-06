@@ -164,11 +164,11 @@ export class TestEnvironment {
     }
   };
 
-  getWallet = async () => {
+  getWallet = async (additionalSeed?: string) => {
     this.logger.info('Setting up wallet');
     this.wallet = await api.buildWalletAndWaitForFunds(
       this.testConfig.dappConfig,
-      this.testConfig.seed,
+      additionalSeed ?? this.testConfig.seed,
       this.testConfig.cacheFileName,
     );
     const state = await Rx.firstValueFrom(this.wallet.state());

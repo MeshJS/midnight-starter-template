@@ -14,7 +14,9 @@ const logger = await createLogger(logDir);
 describe('API', () => {
   let testEnvironment: TestEnvironment;
   let wallet: Wallet & Resource;
+  let wallet2: Wallet & Resource;
   let providers: BboardProviders;
+  let providers2: BboardProviders;
 
   beforeAll(
     async () => {
@@ -22,7 +24,9 @@ describe('API', () => {
       testEnvironment = new TestEnvironment(logger);
       const testConfiguration = await testEnvironment.start();
       wallet = await testEnvironment.getWallet();
+      wallet2 = await testEnvironment.getWallet('1dec0dd58fbe4d3206ef960aebff95a77e09dffbd19f3e9439d23fe6de4fcdd1');
       providers = await api.configureProviders(wallet, testConfiguration.dappConfig);
+      providers2 = await api.configureProviders(wallet2, testConfiguration.dappConfig, 'bboard-private-state2');
     },
     1000 * 60 * 45,
   );

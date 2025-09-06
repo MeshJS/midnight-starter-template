@@ -435,11 +435,11 @@ export const displayDerivedState = async (providers: BboardProviders, ledgerStat
 export const buildFreshWallet = async (config: Config): Promise<Wallet & Resource> =>
   await buildWalletAndWaitForFunds(config, toHex(randomBytes(32)), '');
 
-export const configureProviders = async (wallet: Wallet & Resource, config: Config) => {
+export const configureProviders = async (wallet: Wallet & Resource, config: Config, additionalStoreName?: string) => {
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(wallet);
   return {
     privateStateProvider: levelPrivateStateProvider<typeof BboardPrivateStateId>({
-      privateStateStoreName: contractConfig.privateStateStoreName,
+      privateStateStoreName: additionalStoreName ?? contractConfig.privateStateStoreName,
     }),
     publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
     zkConfigProvider: new NodeZkConfigProvider<'post' | 'takeDown'>(contractConfig.zkConfigPath),

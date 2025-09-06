@@ -16,10 +16,10 @@ export const logger = pino.pino({
   level: "trace",
 });
 // Update this network id, could be testnet or undeployed
-setNetworkId(NetworkId.TestNet);
+setNetworkId(NetworkId.Undeployed);
 // Update this with your deployed contract address
 const contractAddress =
-  "02001d8febe8b845d78be10413f3c9e910f06b6c78108b0c8287d94928ba9d22d571";
+  "0200616f9ecf9710f508bf13f7f98dacbed239a0f38fb289f08d532d7b367dd57505";
 
 function App() {
   return (

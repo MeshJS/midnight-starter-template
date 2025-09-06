@@ -6,11 +6,14 @@
   "workspaces": [
     "counter-cli",
     "counter-contract",
+    "bulletin-board",
+    "bulletin-board-cli",
     "frontend-vite-react"
   ],
   "scripts": {
     "compact": "turbo run compact",
     "build": "turbo run build",
+    "test": "turbo run test",
     "lint": "turbo run lint",
     "dev:proof-server": "cd counter-cli && npm run run-proof-server-testnet",
     "dev:undeployed-instances": "cd counter-cli && npm run prepare-standalone",

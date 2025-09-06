@@ -5,7 +5,7 @@ import * as api from '../api';
 import { type CounterProviders } from '../common-types';
 import { currentDir } from '../config';
 import { createLogger } from '../logger-utils';
-import { TestEnvironment } from './commons';
+import { TestEnvironment } from './simulators/test-environment';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 const logDir = path.resolve(currentDir, '..', 'logs', 'tests', `${new Date().toISOString()}.log`);

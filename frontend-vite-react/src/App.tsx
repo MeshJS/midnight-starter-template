@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MidnightMeshProvider } from "@meshsdk/midnight-react";
+import { MidnightMeshProvider, useAssets } from "@meshsdk/midnight-react";
 import * as pino from "pino";
 import {
   NetworkId,
@@ -7,6 +7,7 @@ import {
 } from "@midnight-ntwrk/midnight-js-network-id";
 import { ThemeProvider } from "./components/theme-provider";
 import { IncomeVerificationService } from "./services/IncomeVerificationService";
+import { MidnightWallet } from "@/modules/midnight/wallet-widget";
 
 // Set up logging and network
 export const logger = pino.pino({
@@ -47,6 +48,12 @@ function EclipseProofApp() {
   >(null);
   const [verificationError, setVerificationError] = useState<string>("");
 
+  const { hasConnectedWallet, walletName, address } = useAssets();
+  const truncatedAddress = address
+    ? `${address.slice(0, 6)}...${address.slice(-4)}`
+    : "";
+  const walletLabel = walletName || "Midnight Wallet";
+
   // Initialize the service
   const verificationService = new IncomeVerificationService(contractAddress);
 
@@ -60,6 +67,11 @@ function EclipseProofApp() {
   };
 
   const handleGenerateProof = async () => {
+    if (!hasConnectedWallet) {
+      setError("Connect your Midnight wallet to generate a proof.");
+      return;
+    }
+
     if (!payslipJson || !desiredAmount) {
       setError("Please enter payslip JSON and the desired amount.");
       return;
@@ -112,6 +124,14 @@ function EclipseProofApp() {
   };
 
   const handleVerifyProof = async () => {
+    if (!hasConnectedWallet) {
+      setVerificationError(
+        "Connect your Midnight wallet to verify income proofs."
+      );
+      setVerificationResult(null);
+      return;
+    }
+
     if (!verifyHash || !requiredAmount) {
       setVerificationError(
         "Please provide a proof hash and the required income amount."
@@ -213,11 +233,32 @@ function EclipseProofApp() {
                 }
             `}</style>
 
-      <header className="text-center mb-6">
-        <h1 className="text-4xl font-bold text-white">EclipseProof</h1>
-        <p className="text-indigo-400">
-          Verify Your Income. Preserve Your Privacy.
-        </p>
+      <header className="mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-bold text-white">EclipseProof</h1>
+            <p className="text-indigo-400">
+              Verify Your Income. Preserve Your Privacy.
+            </p>
+          </div>
+          <div className="flex flex-col items-center md:items-end gap-2">
+            <MidnightWallet />
+            {hasConnectedWallet ? (
+              <p className="text-xs text-slate-400">
+                Logged in as {walletLabel}
+                {truncatedAddress && (
+                  <span className="ml-1 font-mono text-slate-300">
+                    ({truncatedAddress})
+                  </span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400 text-center md:text-right">
+                Connect your Midnight wallet to start.
+              </p>
+            )}
+          </div>
+        </div>
       </header>
 
       <main className="bg-slate-800 rounded-xl shadow-2xl p-6 md:p-8">
@@ -235,6 +276,17 @@ function EclipseProofApp() {
             ✅ Verifier
           </button>
         </div>
+
+        {!hasConnectedWallet && (
+          <div className="mb-6 rounded-lg border border-indigo-600 bg-indigo-900/30 p-4 text-indigo-100">
+            <p className="text-sm font-medium">
+              Connect your Midnight wallet to generate or verify income proofs.
+            </p>
+            <p className="mt-2 text-xs text-indigo-200">
+              Use the Connect Wallet button above to sign in securely.
+            </p>
+          </div>
+        )}
 
         {/* Conditional Rendering: Show Prover View */}
         {view === "prover" && (
@@ -327,8 +379,8 @@ function EclipseProofApp() {
 
             <button
               onClick={handleGenerateProof}
-              disabled={isLoading}
-              className="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center"
+              disabled={isLoading || !hasConnectedWallet}
+              className="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading
                 ? "🔄 Generating Proof..."
@@ -452,8 +504,8 @@ function EclipseProofApp() {
 
             <button
               onClick={handleVerifyProof}
-              disabled={isLoading}
-              className="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center"
+              disabled={isLoading || !hasConnectedWallet}
+              className="w-full btn-primary text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? "🔄 Verifying Proof..." : "✅ Verify Income Proof"}
               {isLoading && <div className="loader w-5 h-5 ml-2"></div>}

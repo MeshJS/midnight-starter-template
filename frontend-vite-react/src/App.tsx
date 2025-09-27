@@ -49,7 +49,6 @@ function EclipseProofApp() {
   const [requiredAmount, setRequiredAmount] = useState("");
   const [verifierName, setVerifierName] = useState("");
   const [verifierDOB, setVerifierDOB] = useState("");
-  const [verifierHash, setVerifierHash] = useState("");
   const [verificationResult, setVerificationResult] = useState<
     "success" | "failed" | null
   >(null);
@@ -147,7 +146,6 @@ function EclipseProofApp() {
         currency: "GBP",
         applicantName: verifierName,
         applicantDOB: verifierDOB,
-        expectedHash: verifierHash || undefined,
       });
 
       if (result.error) {
@@ -468,26 +466,8 @@ function EclipseProofApp() {
               <p className="text-slate-500 text-xs mt-1">
                 Enter the minimum income you require for approval
               </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="verifier-hash"
-                className="block text-sm font-medium text-slate-300 mb-2"
-              >
-                4. Additional Hash (Optional)
-              </label>
-              <input
-                type="text"
-                id="verifier-hash"
-                value={verifierHash}
-                onChange={(e) => setVerifierHash(e.target.value)}
-                placeholder="Additional verification hash (if provided)"
-                className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
-              />
               <p className="text-slate-500 text-xs mt-1">
-                🔒 Identity verification ensures the proof matches the specific
-                applicant
+                🔒 Identity verification ensures the proof matches the specific applicant
               </p>
             </div>
 

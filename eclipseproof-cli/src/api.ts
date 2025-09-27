@@ -1,5 +1,5 @@
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { Prover, type ProverPrivateState, witnesses } from '@meshsdk/prover-contract';
+import { EclipseProof, type EclipseProofPrivateState, witnesses } from './eclipseproof-contract-compat';
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -21,6 +21,11 @@ import { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
 import {
+  type EclipseProofContract,
+  type EclipseProofPrivateStateId,
+  type EclipseProofProviders,
+  type DeployedEclipseProofContract,
+  // Legacy types for backward compatibility
   type ProverContract,
   type ProverPrivateStateId,
   type ProverProviders,
@@ -52,7 +57,10 @@ export const getProverLedgerState = async (
   return state;
 };
 
-export const proverContractInstance: ProverContract = new Prover.Contract(witnesses);
+export const eclipseProofContractInstance: EclipseProofContract = new EclipseProof.Contract(witnesses);
+
+// Legacy export for backward compatibility
+export const proverContractInstance: ProverContract = eclipseProofContractInstance;
 
 export const joinContract = async (
   providers: ProverProviders,
@@ -70,7 +78,7 @@ export const joinContract = async (
 
 export const deploy = async (
   providers: ProverProviders,
-  privateState: ProverPrivateState,
+  privateState: EclipseProofPrivateState,
 ): Promise<DeployedProverContract> => {
   logger.info('Deploying prover contract...');
   const proverContract = await deployContract(providers, {
@@ -101,33 +109,53 @@ export const submitProofRequest = async (
   logger.info('Submitting proof request...');
   logger.info(`Proof request for ${proofRequest.document.Name} - Amount: ${proofRequest.proofAmount}`);
   
-  // This would call the contract's submitProofRequest method
-  const finalizedTxData = await proverContract.callTx.submitProofRequest(proofRequest);
+  // Mock implementation - in reality this would call the contract's submitProofRequest method
+  // const finalizedTxData = await proverContract.callTx.submitProofRequest(proofRequest);
+  
+  // Mock transaction data for now
+  const mockTxData: any = {
+    tx: null, // Mock transaction
+    txHash: `mock-tx-hash-${Date.now()}`,
+    status: 'confirmed',
+    txId: `mock-tx-id-${Date.now()}`,
+    blockHash: `mock-block-hash-${Date.now()}`,
+    blockHeight: 12345n,
+  };
   
   logger.info({
-    section: 'Proof Request Submitted',
-    tx: finalizedTxData.public.tx,
-    txHash: finalizedTxData.public.txHash,
-    status: finalizedTxData.public.status,
+    section: 'Proof Request Submitted (Mock)',
+    tx: mockTxData.tx,
+    txHash: mockTxData.txHash,
+    status: mockTxData.status,
   });
 
-  return finalizedTxData.public;
+  return mockTxData;
 };
 
 export const generateProof = async (proverContract: DeployedProverContract): Promise<FinalizedTxData> => {
   logger.info('Generating proof...');
   
-  // This would call the contract's generateProof method
-  const finalizedTxData = await proverContract.callTx.generateProof();
+  // Mock implementation - in reality this would call the contract's generateProof method
+  // const finalizedTxData = await proverContract.callTx.generateProof();
+  
+  // Mock transaction data for now
+  const mockTxData: any = {
+    tx: null, // Mock transaction
+    txHash: `mock-proof-tx-hash-${Date.now()}`,
+    status: 'confirmed',
+    txId: `mock-proof-tx-id-${Date.now()}`,
+    blockHash: `mock-proof-block-hash-${Date.now()}`,
+    blockHeight: 12346n,
+  };
   
   logger.info({
-    section: 'Proof Generated',
-    tx: finalizedTxData.public.tx,
-    txHash: finalizedTxData.public.txHash,
-    status: finalizedTxData.public.status,
+    section: 'Proof Generated (Mock)',
+    tx: mockTxData.tx,
+    txHash: mockTxData.txHash,
+    status: mockTxData.status,
   });
 
-  return finalizedTxData.public;
+  return mockTxData;
 };
 
 // Note: Proof verification will be handled by a separate verification CLI
@@ -397,6 +425,127 @@ export const configureProviders = async (wallet: Wallet & Resource, config: Conf
     walletProvider: walletAndMidnightProvider,
     midnightProvider: walletAndMidnightProvider,
   };
+};
+
+import { type ProofGenerationInput, type ProofVerificationInput } from './common-types';
+
+// Enhanced proof generation function that includes name, DOB, and payslip
+export const generateEclipseProof = async (
+  proverContract: DeployedProverContract,
+  input: ProofGenerationInput,
+): Promise<{ proof: string; finalizedTxData: FinalizedTxData }> => {
+  logger.info('Generating EclipseProof...');
+  logger.info(`Generating proof for ${input.name} (DOB: ${input.dateOfBirth})`);
+  logger.info(`Payslip from ${input.payslip.employer} - Net Pay: ${input.payslip.netpay}`);
+  logger.info(`Amount to prove: ${input.amountToProve}`);
+  
+  // Validate that amount to prove doesn't exceed net pay
+  if (input.amountToProve > input.payslip.netpay) {
+    throw new Error(`Amount to prove (${input.amountToProve}) cannot exceed net pay (${input.payslip.netpay})`);
+  }
+
+  // Validate that the name matches between input and payslip
+  if (input.name.toLowerCase() !== input.payslip.name.toLowerCase()) {
+    throw new Error(`Name mismatch: Input name (${input.name}) doesn't match payslip name (${input.payslip.name})`);
+  }
+
+  // Create the proof data structure
+  const proofData = {
+    user: {
+      name: input.name,
+      dateOfBirth: input.dateOfBirth,
+    },
+    payslip: input.payslip,
+    amountToProve: input.amountToProve,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Mock contract call - in reality this would call the contract's generateEclipseProof method
+  // const finalizedTxData = await proverContract.callTx.generateEclipseProof(proofData);
+  
+  // Mock transaction data
+  const mockTxData: any = {
+    tx: null,
+    txHash: `mock-eclipse-proof-tx-hash-${Date.now()}`,
+    status: 'confirmed',
+    txId: `mock-eclipse-proof-tx-id-${Date.now()}`,
+    blockHash: `mock-eclipse-proof-block-hash-${Date.now()}`,
+    blockHeight: 12347n,
+  };
+  
+  // Create a proof string (this would typically be a cryptographic proof)
+  // For now, we'll create a base64-encoded JSON string as a placeholder
+  const proofString = Buffer.from(JSON.stringify({
+    proofData,
+    txHash: mockTxData.txHash,
+    contractAddress: proverContract.deployTxData.public.contractAddress,
+    signature: 'PLACEHOLDER_SIGNATURE', // This would be a real cryptographic signature
+    timestamp: new Date().toISOString(),
+    version: '1.0.0',
+  })).toString('base64');
+
+  logger.info({
+    section: 'EclipseProof Generated (Mock)',
+    tx: mockTxData.tx,
+    txHash: mockTxData.txHash,
+    status: mockTxData.status,
+    proofLength: proofString.length,
+  });
+
+  return { proof: proofString, finalizedTxData: mockTxData };
+};
+
+// Proof verification function
+export const verifyEclipseProof = async (
+  providers: ProverProviders,
+  input: ProofVerificationInput,
+): Promise<{ isValid: boolean; reason?: string }> => {
+  logger.info('Verifying EclipseProof...');
+  logger.info(`Verifying proof for ${input.name} (DOB: ${input.dateOfBirth})`);
+  logger.info(`Amount to verify: ${input.amountToVerify}`);
+
+  try {
+    // Decode the proof string
+    const proofJson = JSON.parse(Buffer.from(input.proof, 'base64').toString());
+    
+    // Verify the proof structure
+    if (!proofJson.proofData || !proofJson.txHash || !proofJson.contractAddress) {
+      return { isValid: false, reason: 'Invalid proof structure' };
+    }
+
+    // Verify the name matches
+    if (proofJson.proofData.user.name.toLowerCase() !== input.name.toLowerCase()) {
+      return { isValid: false, reason: 'Name does not match proof' };
+    }
+
+    // Verify the date of birth matches
+    if (proofJson.proofData.user.dateOfBirth !== input.dateOfBirth) {
+      return { isValid: false, reason: 'Date of birth does not match proof' };
+    }
+
+    // Verify the amount is valid (user is trying to verify an amount <= the proven amount)
+    if (input.amountToVerify > proofJson.proofData.amountToProve) {
+      return { isValid: false, reason: `Verification amount (${input.amountToVerify}) exceeds proven amount (${proofJson.proofData.amountToProve})` };
+    }
+
+    // Verify the transaction exists on the blockchain
+    const contractAddress = proofJson.contractAddress;
+    const ledgerState = await getProverLedgerState(providers, contractAddress);
+    
+    if (ledgerState === null) {
+      return { isValid: false, reason: 'Contract not found on blockchain' };
+    }
+
+    // Additional verification logic would go here
+    // For now, we'll assume the proof is valid if all checks pass
+    
+    logger.info('✅ Proof verification successful');
+    return { isValid: true };
+
+  } catch (error) {
+    logger.error(`Proof verification failed: ${error}`);
+    return { isValid: false, reason: `Verification error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+  }
 };
 
 export function setLogger(_logger: Logger) {

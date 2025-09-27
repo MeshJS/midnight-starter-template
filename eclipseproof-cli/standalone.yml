@@ -1,13 +1,13 @@
 services:
   proof-server:
-    container_name: 'prover-proof-server'
+    container_name: 'eclipseproof-proof-server'
     image: "midnightnetwork/proof-server:4.0.0"
     ports:
       - "6300:6300"
     environment:
       RUST_BACKTRACE: "full"
   indexer:
-    container_name: 'prover-indexer'
+    container_name: 'eclipseproof-indexer'
     image: 'midnightntwrk/indexer-standalone:2.1.1'
     ports:
       - '8088:8088'
@@ -23,7 +23,7 @@ services:
         condition: service_started
   node:
     image: 'midnightnetwork/midnight-node:0.12.0'
-    container_name: 'prover-node'
+    container_name: 'eclipseproof-node'
     ports:
       - "9944:9944"
     healthcheck:

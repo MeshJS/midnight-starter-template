@@ -34,10 +34,9 @@ describe('Prover API', () => {
 
   it('should deploy prover contract and generate salary proof [@slow]', async () => {
     // Deploy prover contract with initial state
-    const proverContract = await api.deploy(providers, { 
-      proofStatus: 'idle',
-      proofCount: 0,
-      lastProofAmount: null
+    const proverContract = await api.deploy(providers, {
+      proofs: [],
+      status: ''
     });
     expect(proverContract).not.toBeNull();
 

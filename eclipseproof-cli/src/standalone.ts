@@ -6,7 +6,7 @@ import { currentDir, StandaloneConfig } from './config.js';
 
 const config = new StandaloneConfig();
 const dockerEnv = new DockerComposeEnvironment(path.resolve(currentDir, '..'), 'standalone.yml')
-  .withWaitStrategy('prover-proof-server', Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1))
-  .withWaitStrategy('prover-indexer', Wait.forLogMessage(/starting indexing/, 1));
+  .withWaitStrategy('eclipseproof-proof-server', Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1))
+  .withWaitStrategy('eclipseproof-indexer', Wait.forLogMessage(/starting indexing/, 1));
 const logger = await createLogger(config.logDir);
 await run(config, logger, dockerEnv);

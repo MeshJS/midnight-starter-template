@@ -1,5 +1,5 @@
 {
-  "name": "@meshsdk/prover-cli",
+  "name": "@meshsdk/eclipseproof-cli",
   "version": "0.1.0",
   "license": "Apache-2.0",
   "private": true,
@@ -18,8 +18,8 @@
   "scripts": {    
     "testnet-remote-ps": "node --experimental-specifier-resolution=node --loader ts-node/esm src/testnet-remote-start-proof-server.ts",    
     "standalone": "node --experimental-specifier-resolution=node --loader ts-node/esm src/standalone.ts",
-    "test-prover-api-standalone": "DEBUG='testcontainers' vitest run prover.api.test.ts",
-    "test-prover-api-testnet": "RUN_ENV_TESTS=true TEST_ENV=testnet TEST_WALLET_SEED=1dec0dd58fbe4d3206ef960aebff95a77e09dffbd19f3e9439d23fe6de4fcdd1 SYNC_CACHE=./src/test vitest run prover.api.test.ts",
+    "test-eclipseproof-api-standalone": "DEBUG='testcontainers' vitest run counter.api.test.ts",
+    "test-eclipseproof-api-testnet": "RUN_ENV_TESTS=true TEST_ENV=testnet TEST_WALLET_SEED=1dec0dd58fbe4d3206ef960aebff95a77e09dffbd19f3e9439d23fe6de4fcdd1 SYNC_CACHE=./src/test vitest run counter.api.test.ts",
     "prepare-standalone": "DEBUG='testcontainers' vitest run prepare-standalone.test.ts",        
     "build": "rm -rf dist && tsc --project tsconfig.build.json",
     "lint": "eslint src",
@@ -28,7 +28,6 @@
   },
   "dependencies": {
     "@bitcoin-js/tiny-secp256k1-asmjs": "^2.2.4",
-    "@meshsdk/prover-contract": "*",
     "@midnight-ntwrk/wallet-sdk-hd": "^2.0.0",
     "bip32": "^5.0.0-rc.0",
     "bip39": "^3.1.0",

@@ -17,7 +17,9 @@ let logger: Logger;
  */
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
-// Document structure for salary proof
+import { type ProofGenerationInput, type ProofVerificationInput, type PayslipDocument } from './common-types';
+
+// Legacy interfaces for backward compatibility
 interface SalaryDocument {
   Name: string;
   Employer: string;
@@ -26,17 +28,17 @@ interface SalaryDocument {
   NetPay: number;
 }
 
-// Proof request structure
 interface SalaryProofRequest {
   document: SalaryDocument;
-  proofAmount: number; // Amount user wants to prove (≤ NetPay)
+  proofAmount: number;
 }
 
 const MAIN_LOOP_QUESTION = `
-You can do one of the following:
-  1. Upload salary document and generate proof
-  2. View proof status
-  3. Exit
+EclipseProof CLI - You can do one of the following:
+  1. Generate proof (for salary verification)
+  2. Verify existing proof
+  3. View proof status
+  4. Exit
 Which would you like to do? `;
 
 const processJsonDocument = async (rli: Interface): Promise<SalaryDocument> => {
@@ -73,6 +75,119 @@ const processJsonDocument = async (rli: Interface): Promise<SalaryDocument> => {
   return documentData as SalaryDocument;
 };
 
+// New function to collect proof generation input
+const collectProofGenerationInput = async (rli: Interface): Promise<ProofGenerationInput> => {
+  logger.info('Collecting information for proof generation...');
+  
+  // Get user's name
+  const name = await rli.question('Enter your full name: ');
+  if (!name.trim()) {
+    throw new Error('Name is required');
+  }
+
+  // Get date of birth
+  const dateOfBirth = await rli.question('Enter your date of birth (YYYY-MM-DD): ');
+  if (!dateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    throw new Error('Date of birth must be in YYYY-MM-DD format');
+  }
+
+  // Get payslip information
+  logger.info('Now enter your payslip details...');
+  
+  const payslipName = await rli.question('Name on payslip: ');
+  if (!payslipName.trim()) {
+    throw new Error('Payslip name is required');
+  }
+
+  const employer = await rli.question('Employer name: ');
+  if (!employer.trim()) {
+    throw new Error('Employer name is required');
+  }
+
+  const address = await rli.question('Employer address: ');
+  if (!address.trim()) {
+    throw new Error('Employer address is required');
+  }
+
+  const payslipDate = await rli.question('Payslip date (YYYY-MM-DD): ');
+  if (!payslipDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    throw new Error('Payslip date must be in YYYY-MM-DD format');
+  }
+
+  const netpayStr = await rli.question('Net pay amount: ');
+  const netpay = parseFloat(netpayStr);
+  if (isNaN(netpay) || netpay <= 0) {
+    throw new Error('Net pay must be a positive number');
+  }
+
+  // Get amount to prove
+  const amountStr = await rli.question(`Enter amount you want to prove (must be ≤ ${netpay}): `);
+  const amountToProve = parseFloat(amountStr);
+  if (isNaN(amountToProve) || amountToProve <= 0) {
+    throw new Error('Amount to prove must be a positive number');
+  }
+
+  if (amountToProve > netpay) {
+    throw new Error(`Amount to prove (${amountToProve}) cannot exceed net pay (${netpay})`);
+  }
+
+  // Verify name consistency
+  if (name.toLowerCase() !== payslipName.toLowerCase()) {
+    const confirm = await rli.question(`Warning: Your name (${name}) doesn't match payslip name (${payslipName}). Continue? (y/n): `);
+    if (confirm.toLowerCase() !== 'y' && confirm.toLowerCase() !== 'yes') {
+      throw new Error('Name verification cancelled by user');
+    }
+  }
+
+  const payslip: PayslipDocument = {
+    name: payslipName,
+    employer,
+    address,
+    date: payslipDate,
+    netpay,
+  };
+
+  return {
+    name,
+    payslip,
+    dateOfBirth,
+    amountToProve,
+  };
+};
+
+// New function to collect proof verification input
+const collectProofVerificationInput = async (rli: Interface): Promise<ProofVerificationInput> => {
+  logger.info('Collecting information for proof verification...');
+  
+  const proof = await rli.question('Enter the proof string: ');
+  if (!proof.trim()) {
+    throw new Error('Proof string is required');
+  }
+
+  const name = await rli.question('Enter the name to verify: ');
+  if (!name.trim()) {
+    throw new Error('Name is required');
+  }
+
+  const dateOfBirth = await rli.question('Enter the date of birth to verify (YYYY-MM-DD): ');
+  if (!dateOfBirth.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    throw new Error('Date of birth must be in YYYY-MM-DD format');
+  }
+
+  const amountStr = await rli.question('Enter the amount to verify: ');
+  const amountToVerify = parseFloat(amountStr);
+  if (isNaN(amountToVerify) || amountToVerify <= 0) {
+    throw new Error('Amount to verify must be a positive number');
+  }
+
+  return {
+    proof,
+    name,
+    dateOfBirth,
+    amountToVerify,
+  };
+};
+
 const getProofAmount = async (rli: Interface, maxAmount: number): Promise<number> => {
   while (true) {
     const amountStr = await rli.question(`Enter amount to prove (must be ≤ ${maxAmount}): `);
@@ -97,6 +212,73 @@ const getProofAmount = async (rli: Interface, maxAmount: number): Promise<number
   }
 };
 
+// Enhanced proof generation function
+const generateEclipseProof = async (
+  proverContract: DeployedProverContract,
+  rli: Interface
+): Promise<void> => {
+  try {
+    logger.info('Starting EclipseProof generation...');
+    
+    // Collect all required input
+    const input = await collectProofGenerationInput(rli);
+    
+    logger.info('Generating proof with collected information...');
+    const result = await api.generateEclipseProof(proverContract, input);
+    
+    logger.info('✅ EclipseProof generated successfully!');
+    logger.info(`Proof for: ${input.name}`);
+    logger.info(`Amount proven: ${input.amountToProve}`);
+    logger.info('Your proof string:');
+    logger.info('='.repeat(80));
+    logger.info(result.proof);
+    logger.info('='.repeat(80));
+    logger.info('Save this proof string - you\'ll need it for verification!');
+    
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(`EclipseProof generation failed: ${error.message}`);
+    } else {
+      logger.error('Unknown error during proof generation');
+    }
+    throw error;
+  }
+};
+
+// Proof verification function
+const verifyEclipseProof = async (
+  providers: ProverProviders,
+  rli: Interface
+): Promise<void> => {
+  try {
+    logger.info('Starting EclipseProof verification...');
+    
+    // Collect verification input
+    const input = await collectProofVerificationInput(rli);
+    
+    logger.info('Verifying proof...');
+    const result = await api.verifyEclipseProof(providers, input);
+    
+    if (result.isValid) {
+      logger.info('✅ Proof verification SUCCESSFUL!');
+      logger.info(`The person ${input.name} (DOB: ${input.dateOfBirth}) has proven`);
+      logger.info(`that they earn at least ${input.amountToVerify} without revealing their actual salary.`);
+    } else {
+      logger.error('❌ Proof verification FAILED!');
+      logger.error(`Reason: ${result.reason || 'Unknown verification error'}`);
+    }
+    
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error(`Proof verification failed: ${error.message}`);
+    } else {
+      logger.error('Unknown error during proof verification');
+    }
+    throw error;
+  }
+};
+
+// Legacy function for backward compatibility
 const createSalaryProof = async (
   proverContract: DeployedProverContract,
   rli: Interface
@@ -166,13 +348,13 @@ const autoDeployOrJoin = async (providers: ProverProviders): Promise<DeployedPro
     return existingContract;
   } else {
     logger.info('No existing contract found. Deploying new contract...');
-    const newContract = await api.deploy(providers, { initialState: {} });
+    const newContract = await api.deploy(providers, { proofs: [], status: 'idle' });
     logger.info('✅ New contract deployed successfully!');
     return newContract;
   }
 };
 
-// Update mainLoop to use automatic deployment/joining
+// Updated mainLoop with new options
 const mainLoop = async (providers: ProverProviders, rli: Interface): Promise<void> => {
   const proverContract = await autoDeployOrJoin(providers);
   if (proverContract === null) {
@@ -184,16 +366,19 @@ const mainLoop = async (providers: ProverProviders, rli: Interface): Promise<voi
     const choice = await rli.question(MAIN_LOOP_QUESTION);
     switch (choice) {
       case '1':
-        await createSalaryProof(proverContract, rli);
+        await generateEclipseProof(proverContract, rli);
         break;
       case '2':
-        await api.displayProofStatus(providers, proverContract);
+        await verifyEclipseProof(providers, rli);
         break;
       case '3':
-        logger.info('Exiting...');
+        await api.displayProofStatus(providers, proverContract);
+        break;
+      case '4':
+        logger.info('Exiting EclipseProof CLI...');
         return;
       default:
-        logger.error(`Invalid choice: ${choice}`);
+        logger.error(`Invalid choice: ${choice}. Please select 1-4.`);
     }
   }
 };
@@ -248,10 +433,10 @@ export const run = async (config: Config, _logger: Logger, dockerEnv?: DockerCom
     env = await dockerEnv.up();
 
     if (config instanceof StandaloneConfig) {
-      config.indexer = mapContainerPort(env, config.indexer, 'prover-indexer');
-      config.indexerWS = mapContainerPort(env, config.indexerWS, 'prover-indexer');
-      config.node = mapContainerPort(env, config.node, 'prover-node');
-      config.proofServer = mapContainerPort(env, config.proofServer, 'prover-proof-server');
+      config.indexer = mapContainerPort(env, config.indexer, 'eclipseproof-indexer');
+      config.indexerWS = mapContainerPort(env, config.indexerWS, 'eclipseproof-indexer');
+      config.node = mapContainerPort(env, config.node, 'eclipseproof-node');
+      config.proofServer = mapContainerPort(env, config.proofServer, 'eclipseproof-proof-server');
     }
   }
   const wallet = await buildWallet(config, rli);
@@ -295,7 +480,72 @@ export const run = async (config: Config, _logger: Logger, dockerEnv?: DockerCom
   }
 };
 
-// Export for automated processing (API usage)
+// Export for automated EclipseProof generation
+export const generateEclipseProofAutomatically = async (
+  config: Config,
+  _logger: Logger,
+  input: ProofGenerationInput,
+  dockerEnv?: DockerComposeEnvironment
+): Promise<string> => {
+  logger = _logger;
+  api.setLogger(_logger);
+  
+  try {
+    // Setup wallet and providers
+    const wallet = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED, '');
+    const providers = await api.configureProviders(wallet, config);
+    
+    // Auto deploy or join existing contract
+    const proverContract = await autoDeployOrJoin(providers);
+    if (!proverContract) {
+      throw new Error('Failed to deploy or join contract');
+    }
+    
+    const result = await api.generateEclipseProof(proverContract, input);
+    
+    logger.info('✅ Automated EclipseProof generated successfully!');
+    logger.info('This proof can now be verified by others using the verification function');
+    
+    return result.proof;
+    
+  } catch (error) {
+    logger.error(`Automated proof generation failed: ${error}`);
+    throw error;
+  }
+};
+
+// Export for automated EclipseProof verification
+export const verifyEclipseProofAutomatically = async (
+  config: Config,
+  _logger: Logger,
+  input: ProofVerificationInput,
+  dockerEnv?: DockerComposeEnvironment
+): Promise<boolean> => {
+  logger = _logger;
+  api.setLogger(_logger);
+  
+  try {
+    // Setup wallet and providers
+    const wallet = await api.buildWalletAndWaitForFunds(config, GENESIS_MINT_WALLET_SEED, '');
+    const providers = await api.configureProviders(wallet, config);
+    
+    const result = await api.verifyEclipseProof(providers, input);
+    
+    if (result.isValid) {
+      logger.info('✅ Automated proof verification successful!');
+    } else {
+      logger.error(`❌ Automated proof verification failed: ${result.reason}`);
+    }
+    
+    return result.isValid;
+    
+  } catch (error) {
+    logger.error(`Automated proof verification failed: ${error}`);
+    throw error;
+  }
+};
+
+// Legacy function for backward compatibility
 export const processDocumentAutomatically = async (
   config: Config,
   _logger: Logger,

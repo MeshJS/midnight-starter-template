@@ -68,9 +68,8 @@ describe('Prepare Standalone', () => {
     // Test prover contract deployment
     try {
       const deployedContract = await api.deploy(providers, { 
-        proofStatus: 'idle', 
-        proofCount: 0, 
-        lastProofAmount: null 
+        proofs: [],
+        status: 'idle'
       });
       logger.info(`Prover contract deployed at: ${deployedContract.deployTxData.public.contractAddress}`);
       

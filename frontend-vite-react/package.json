@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run copy-contract-keys && tsc -b && vite build",
+    "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "copy-contract-keys": "mkdir -p ./public/midnight/counter/keys && mkdir -p ./public/midnight/counter/zkir && cp -r ../counter-contract/dist/managed/counter/keys/* ./public/midnight/counter/keys && cp -r ../counter-contract/dist/managed/counter/zkir/* ./public/midnight/counter/zkir"
@@ -34,8 +34,6 @@
     "@eslint/js": "^9.25.0",
     "@originjs/vite-plugin-commonjs": "1.0.3",
     "@rollup/plugin-commonjs": "^28.0.1",
-    "@rollup/rollup-win32-x64-msvc": "^4.52.2",
-    "@tailwindcss/oxide-win32-x64-msvc": "^4.1.13",
     "@types/node": "^24.0.3",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

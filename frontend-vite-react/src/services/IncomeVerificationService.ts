@@ -6,10 +6,8 @@ import {
 } from "../types/income-verification";
 
 export class IncomeVerificationService {
-  private contractAddress: string;
 
-  constructor(contractAddress: string) {
-    this.contractAddress = contractAddress;
+  constructor(_contractAddress: string) {
   }
 
   /**

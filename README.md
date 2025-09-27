@@ -32,31 +32,35 @@ Imagine you want to get into a club that only allows people over 21:
 ### For Income Verification:
 
 1. **Prover** uploads their payslip privately
-2. System extracts income data (never shared)
-3. Prover specifies minimum income to prove (e.g., "I earn at least £2,500")
-4. System generates a **Proof Key** using zero-knowledge cryptography
-5. **Verifier** checks the Proof Key against their requirement
-6. Result: ✅ "Meets requirement" or ❌ "Doesn't meet requirement"
+2. **Prover** enters their name and date of birth for identity verification
+3. System extracts income data (never shared) and creates identity hashes
+4. Prover specifies minimum income to prove (e.g., "I earn at least £2,500")
+5. System generates a **Proof Key** using zero-knowledge cryptography with identity verification
+6. **Verifier** receives the Proof Key and enters applicant's details for matching
+7. System verifies both income threshold AND identity match
+8. Result: ✅ "Identity verified and meets requirement" or ❌ "Verification failed"
 
-**The verifier learns ONLY whether the requirement is met - nothing else!**
+**The verifier learns ONLY whether the identity matches and requirement is met - nothing else!**
 
 ## � Features
 
 ### 🔐 For Provers (Income Holders)
 
 - **Document Upload**: Secure payslip processing with OCR simulation
+- **Identity Verification**: Enter name and date of birth for cryptographic hashing
 - **Income Detection**: Automatic extraction of salary information
 - **Flexible Thresholds**: Prove any minimum income level
-- **Privacy Protection**: Your exact income stays completely private
-- **Proof Generation**: Create shareable cryptographic proofs
+- **Privacy Protection**: Your exact income and identity details stay completely private
+- **Proof Generation**: Create shareable cryptographic proofs with identity verification
 
 ### ✅ For Verifiers (Landlords, Lenders, etc.)
 
-- **Simple Verification**: Paste proof key and set requirements
-- **Instant Results**: Get yes/no answers in seconds
-- **Privacy Compliant**: No access to sensitive personal data
+- **Identity Matching**: Verify proofs against specific applicant details
+- **Dual Verification**: Check both income requirements and identity authenticity
+- **Instant Results**: Get yes/no answers with identity confirmation in seconds
+- **Privacy Compliant**: No access to sensitive personal or financial data
+- **Fraud Prevention**: Cryptographic proof prevents identity and income fraud
 - **Audit Trail**: Blockchain-backed verification history
-- **Trust Guaranteed**: Cryptographic proof prevents fraud
 
 ## 🛠️ Technology Stack
 
@@ -116,72 +120,78 @@ EclipseProof/
 
 ## 🎮 Usage Guide
 
-### � As a Prover (Proving Your Income)
+### 👤 As a Prover (Proving Your Income)
 
 1. **Navigate to the Prover Tab** 🔐
 2. **Upload Your Payslip**: Click "Choose a payslip file" and select your document
 3. **Review Detected Income**: The system will show the extracted income amount
-4. **Set Proof Amount**: Enter the minimum income you want to prove (e.g., £2,500)
-5. **Generate Proof**: Click "Generate Privacy Proof"
-6. **Share Proof Key**: Copy the generated proof key and share it with your verifier
+4. **Enter Identity Details**: Provide your full name and date of birth
+5. **Set Proof Amount**: Enter the minimum income you want to prove (e.g., £2,500)
+6. **Generate Proof**: Click "Generate Privacy Proof" 
+7. **Share Proof Key**: Copy the generated proof key and share it with your verifier
 
 ### 🏢 As a Verifier (Checking Income Proof)
 
 1. **Navigate to the Verifier Tab** ✅
 2. **Paste Proof Key**: Enter the proof key shared by the prover
-3. **Set Requirement**: Enter your minimum income requirement
-4. **Verify**: Click "Verify Income Proof"
-5. **Review Result**: Get instant ✅ or ❌ without seeing sensitive details
+3. **Enter Applicant Details**: Input the applicant's exact name and date of birth
+4. **Set Income Requirement**: Enter your minimum income requirement
+5. **Verify**: Click "Verify Income Proof"
+6. **Review Result**: Get instant ✅ or ❌ with identity and income verification
 
 ## 🔒 Privacy & Security
 
 ### What Provers Keep Private:
 
+### What Provers Keep Private:
 - ❌ Exact salary amount
 - ❌ Employer name and details
 - ❌ Bank account information
 - ❌ Personal identifiers on payslips
 - ❌ Other income sources
+- ❌ Raw personal details (only cryptographic hashes are used)
 
 ### What Verifiers Learn:
-
 - ✅ Whether income meets their minimum requirement
+- ✅ Whether identity details match the proof (via hash comparison)
 - ✅ Timestamp of verification
 - ✅ Currency used (e.g., GBP)
-- ❌ Nothing else!
+- ❌ Nothing else! No exact income, names, or dates
 
 ### Security Features:
-
 - 🔐 **End-to-End Encryption**: All sensitive data encrypted
+- 🧬 **Cryptographic Hashing**: Personal details converted to irreversible hashes
 - 🌐 **Blockchain Security**: Proofs stored on decentralized network
 - 🛡️ **Zero-Knowledge**: Cryptographically impossible to extract private data
 - 🔍 **Audit Trail**: All verifications logged for transparency
 - 🚫 **No Data Storage**: Original documents never permanently stored
+- 🛡️ **Identity Verification**: Prevents proof sharing/fraud while protecting privacy
 
 ## 🎯 Use Cases
 
 ### 🏠 **Rental Applications**
-
-- Landlords verify tenant income without seeing full payslips
-- Faster application processing
-- Reduced privacy invasion
+- Landlords verify both income and identity without seeing sensitive details
+- Prevents application fraud with identity matching
+- Faster processing with instant verification
+- Enhanced privacy protection for tenants
 
 ### 🏦 **Loan Applications**
-
-- Banks verify income thresholds for loan eligibility
-- Streamlined underwriting process
-- Enhanced data protection compliance
+- Banks verify income thresholds with identity confirmation
+- Prevents identity fraud in financial applications
+- Streamlined underwriting with cryptographic verification
+- Enhanced data protection compliance (GDPR, CCPA)
 
 ### 💼 **Employment Verification**
-
-- Background checks without salary disclosure
-- Contractor qualification verification
-- Reduced administrative overhead
+- Employers verify candidate income claims with identity matching
+- Background checks without salary or personal detail exposure
+- Prevents resume fraud while protecting privacy
+- Reduced administrative overhead with automated verification
 
 ### 🎓 **Scholarship Applications**
-
-- Income-based eligibility without financial exposure
-- Simplified verification for educational institutions
+- Educational institutions verify income-based eligibility securely
+- Identity matching prevents application fraud
+- Simplified verification process for students
+- Privacy-compliant financial assessment
 
 ## 🔮 Future Roadmap
 

@@ -6,35 +6,84 @@ import {
 } from "../types/income-verification";
 
 export class IncomeVerificationService {
+  private apiBaseUrl: string;
 
   constructor(_contractAddress: string) {
+    this.apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
   }
 
   /**
    * Extract income data from uploaded payslip file
-   * In a real implementation, this would use OCR/AI to parse the document
    */
   async extractIncomeFromFile(file: File): Promise<IncomeData> {
-    // HACKATHON SIMULATION: In reality, you'd use OCR/AI to extract this data
     console.log("Processing file:", file.name);
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const formData = new FormData();
+      formData.append('document', file);
 
-    // For demo purposes, we'll simulate extracting different income amounts
-    // based on file size or name patterns
-    const simulatedIncome = this.simulateIncomeExtraction(file);
+      const response = await fetch(`${this.apiBaseUrl}/api/income/extract`, {
+        method: 'POST',
+        body: formData,
+      });
 
-    return {
-      amount: simulatedIncome,
-      currency: "GBP",
-      timestamp: Date.now(),
-      employerHash: this.generateEmployerHash(file.name),
-    };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const incomeData = await response.json();
+      
+      return {
+        amount: incomeData.amount,
+        currency: incomeData.currency || "GBP",
+        timestamp: incomeData.timestamp || Date.now(),
+        employerHash: incomeData.employerHash,
+      };
+    } catch (error) {
+      console.error('Error extracting income from file:', error);
+      throw new Error(`Failed to extract income data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
-   * Generate a zero-knowledge proof for income verification
+   * Generate proof from JSON payslip data
+   */
+  async generateProofFromJson(data: {
+    name: string;
+    payslipJson: string;
+    dateOfBirth: string;
+    amountToProve: number;
+  }): Promise<string> {
+    console.log("Generating proof from JSON data...");
+    console.log("Amount to prove:", data.amountToProve);
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/api/proof/generate-from-json`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Proof generated:', result);
+
+      return result.proofHash;
+    } catch (error) {
+      console.error('Error generating proof from JSON:', error);
+      throw new Error(`Failed to generate proof: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate a zero-knowledge proof for income verification (legacy)
    */
   async generateIncomeProof(
     incomeData: IncomeData,
@@ -45,114 +94,157 @@ export class IncomeVerificationService {
     console.log("Actual income:", incomeData.amount);
     console.log("Min income to prove:", minIncomeToProve);
 
-    // Validate that the actual income meets the minimum requirement
-    if (incomeData.amount < minIncomeToProve) {
-      throw new Error(
-        `Your income (£${incomeData.amount}) is below the minimum you want to prove (£${minIncomeToProve})`
-      );
+    try {
+      // First, submit the proof request to the backend
+      const document = {
+        Name: personalDetails?.name || 'Anonymous',
+        Employer: 'Unknown', // This could be extracted from the income data
+        Address: 'Unknown',
+        Date: new Date().toISOString().split('T')[0],
+        NetPay: incomeData.amount
+      };
+
+      const submitResponse = await fetch(`${this.apiBaseUrl}/api/proof/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          document,
+          proofAmount: minIncomeToProve,
+        }),
+      });
+
+      if (!submitResponse.ok) {
+        const errorData = await submitResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${submitResponse.status}`);
+      }
+
+      const submitResult = await submitResponse.json();
+      console.log('Proof request submitted:', submitResult);
+
+      // Then generate the actual proof
+      const generateResponse = await fetch(`${this.apiBaseUrl}/api/proof/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!generateResponse.ok) {
+        const errorData = await generateResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${generateResponse.status}`);
+      }
+
+      const generateResult = await generateResponse.json();
+      console.log('Proof generated:', generateResult);
+
+      // Store the proof locally for demo purposes
+      const proof: IncomeProof = {
+        proofKey: generateResult.proofKey,
+        minIncome: minIncomeToProve,
+        currency: incomeData.currency,
+        timestamp: Date.now(),
+        isValid: true,
+        nameHash: personalDetails?.name ? this.generateHash(personalDetails.name.toLowerCase()) : '',
+        dobHash: personalDetails?.dob ? this.generateHash(personalDetails.dob) : '',
+        personalDataHash: personalDetails ? this.generateHash(personalDetails.name.toLowerCase() + personalDetails.dob) : '',
+      };
+
+      this.storeProof(generateResult.proofKey, proof);
+
+      return generateResult.proofKey;
+    } catch (error) {
+      console.error('Error generating income proof:', error);
+      throw new Error(`Failed to generate proof: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
-    // Simulate the zero-knowledge proof generation process
-    // In reality, this would use the Midnight Network's Compact contract
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // Generate hashes for identity verification (in real implementation, these would be cryptographic hashes)
-    let nameHash = "";
-    let dobHash = "";
-    let personalDataHash = "";
-
-    if (personalDetails) {
-      nameHash = this.generateHash(personalDetails.name.toLowerCase());
-      dobHash = this.generateHash(personalDetails.dob);
-      personalDataHash = this.generateHash(
-        personalDetails.name.toLowerCase() + personalDetails.dob
-      );
-    }
-
-    // Generate a realistic-looking proof key
-    const proofData = {
-      minIncome: minIncomeToProve,
-      currency: incomeData.currency,
-      timestamp: Date.now(),
-      actualIncome: incomeData.amount, // This would be hidden in real ZK proof
-      nameHash,
-      dobHash,
-      personalDataHash,
-    };
-
-    const proofKey = this.generateProofKey(proofData);
-
-    // Store the proof in our simulated "blockchain" (localStorage for demo)
-    const proof: IncomeProof = {
-      proofKey,
-      minIncome: minIncomeToProve,
-      currency: incomeData.currency,
-      timestamp: proofData.timestamp,
-      isValid: true,
-      nameHash,
-      dobHash,
-      personalDataHash,
-    };
-
-    this.storeProof(proofKey, proof);
-
-    return proofKey;
   }
 
   /**
-   * Verify an income proof
+   * Verify proof from blockchain
+   */
+  async verifyProofFromBlockchain(data: {
+    proofHash: string;
+    name: string;
+    dateOfBirth: string;
+    requiredAmount: number;
+  }): Promise<VerificationResult> {
+    console.log("Verifying proof from blockchain:", data.proofHash);
+
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/api/proof/verify-from-blockchain`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Proof verification result:', result);
+
+      return {
+        isValid: result.isValid,
+        timestamp: result.verificationTimestamp || Date.now(),
+        meetsRequirement: result.meetsRequirement,
+        identityMatches: result.identityMatches,
+        error: result.isValid && result.meetsRequirement && result.identityMatches
+          ? undefined 
+          : "Proof verification failed, doesn't meet requirements, or identity mismatch",
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        timestamp: Date.now(),
+        meetsRequirement: false,
+        identityMatches: false,
+        error: `Verification failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  }
+
+  /**
+   * Verify an income proof (legacy)
    */
   async verifyIncomeProof(
     request: VerificationRequest
   ): Promise<VerificationResult> {
     console.log("Verifying proof:", request.proofKey);
 
-    // Simulate blockchain verification time
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
     try {
-      const proof = this.retrieveProof(request.proofKey);
+      const response = await fetch(`${this.apiBaseUrl}/api/proof/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          proofKey: request.proofKey,
+          requiredAmount: request.requiredMinIncome,
+          verifierName: request.applicantName, // Use applicant name as verifier for now
+        }),
+      });
 
-      if (!proof) {
-        return {
-          isValid: false,
-          timestamp: Date.now(),
-          meetsRequirement: false,
-          identityMatches: false,
-          error: "Proof key not found or invalid",
-        };
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const meetsRequirement = proof.minIncome >= request.requiredMinIncome;
-
-      // Verify identity details by comparing hashes
-      const providedNameHash = this.generateHash(
-        request.applicantName.toLowerCase()
-      );
-      const providedDobHash = this.generateHash(request.applicantDOB);
-
-      const identityMatches =
-        proof.nameHash === providedNameHash &&
-        proof.dobHash === providedDobHash;
-
-      if (!identityMatches) {
-        return {
-          isValid: proof.isValid,
-          timestamp: Date.now(),
-          meetsRequirement: false,
-          identityMatches: false,
-          error: "Identity details do not match the proof",
-        };
-      }
+      const result = await response.json();
+      console.log('Proof verification result:', result);
 
       return {
-        isValid: proof.isValid,
-        timestamp: Date.now(),
-        meetsRequirement,
-        identityMatches,
-        error: meetsRequirement
-          ? undefined
-          : `Proof only guarantees £${proof.minIncome}, but £${request.requiredMinIncome} is required`,
+        isValid: result.isValid,
+        timestamp: result.verificationTimestamp || Date.now(),
+        meetsRequirement: result.meetsRequirement,
+        identityMatches: true, // Backend handles this verification
+        error: result.isValid && result.meetsRequirement 
+          ? undefined 
+          : "Proof verification failed or doesn't meet requirements",
       };
     } catch (error) {
       return {
@@ -179,39 +271,10 @@ export class IncomeVerificationService {
     return Math.abs(hash).toString(16);
   }
 
-  private simulateIncomeExtraction(file: File): number {
-    // Simulate different income levels based on file characteristics
-    const baseIncome = 2000;
-    const sizeMultiplier = Math.min(file.size / 100000, 3); // File size affects simulated income
-    const randomFactor = 0.8 + Math.random() * 0.4; // Random variation
-
-    return Math.round((baseIncome + sizeMultiplier * 1000) * randomFactor);
-  }
-
-  private generateEmployerHash(filename: string): string {
-    // Simple hash simulation based on filename
-    return "emp_" + btoa(filename).slice(0, 8);
-  }
-
-  private generateProofKey(proofData: any): string {
-    const timestamp = Date.now().toString(36);
-    const dataHash = btoa(JSON.stringify(proofData)).slice(0, 16);
-    return `zk_proof_${timestamp}_${dataHash}`;
-  }
-
   private storeProof(proofKey: string, proof: IncomeProof): void {
-    const proofs = this.getStoredProofs();
+    // Store in localStorage for demo
+    const proofs = JSON.parse(localStorage.getItem("incomeProofs") || "{}");
     proofs[proofKey] = proof;
-    localStorage.setItem("income_proofs", JSON.stringify(proofs));
-  }
-
-  private retrieveProof(proofKey: string): IncomeProof | null {
-    const proofs = this.getStoredProofs();
-    return proofs[proofKey] || null;
-  }
-
-  private getStoredProofs(): Record<string, IncomeProof> {
-    const stored = localStorage.getItem("income_proofs");
-    return stored ? JSON.parse(stored) : {};
+    localStorage.setItem("incomeProofs", JSON.stringify(proofs));
   }
 }

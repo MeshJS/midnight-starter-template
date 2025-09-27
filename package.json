@@ -4,23 +4,31 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "counter-cli",
-    "counter-contract",
     "bulletin-board",
     "bulletin-board-cli",
+    "counter-cli",
+    "counter-contract",
+    "eclipseproof-cli",
     "frontend-vite-react"
   ],
   "scripts": {
+    "install:workspaces": "npm install --workspaces",
     "compact": "turbo run compact",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "dev": "npm run dev:frontend",
-    "dev:proof-server": "cd counter-cli && npm run run-proof-server-testnet",
-    "dev:undeployed-instances": "cd counter-cli && npm run prepare-standalone",
+    "dev:backend": "cd eclipseproof-cli && npm run dev",
+    "dev:backend:simple": "cd eclipseproof-cli && npm run dev:simple",
+    "dev:proof-server": "cd eclipseproof-cli && npm run run-proof-server-testnet",
     "dev:frontend": "cd frontend-vite-react && npm run dev",
-    "start-app-testnet": "concurrently \"npm run dev:proof-server\" \"npm run dev:frontend\"",
-    "start-app-undeployed": "npm run dev:frontend"
+    "dev:undeployed-instances": "cd counter-cli && npm run prepare-standalone",
+    "start-app": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "start-app:simple": "concurrently \"npm run dev:backend:simple\" \"npm run dev:frontend\"",
+    "start-app-testnet": "concurrently \"npm run dev:proof-server\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "start-app-undeployed": "npm run dev:frontend",
+    "prepare-standalone": "cd eclipseproof-cli && npm run prepare-standalone",
+    "setup": "npm run install:workspaces && npm run build"
   },
   "engines": {
     "node": ">=18"

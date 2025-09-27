@@ -16,12 +16,14 @@
     }
   },
   "scripts": {    
+    "dev": "NODE_ENV=development node --experimental-specifier-resolution=node --loader ts-node/esm src/server.ts",
+    "dev:simple": "NODE_ENV=development SIMPLE_MODE=true node --experimental-specifier-resolution=node --loader ts-node/esm src/server.ts",
     "testnet-remote-ps": "node --experimental-specifier-resolution=node --loader ts-node/esm src/testnet-remote-start-proof-server.ts",    
     "standalone": "node --experimental-specifier-resolution=node --loader ts-node/esm src/standalone.ts",
     "test-eclipseproof-api-standalone": "DEBUG='testcontainers' vitest run counter.api.test.ts",
     "test-eclipseproof-api-testnet": "RUN_ENV_TESTS=true TEST_ENV=testnet TEST_WALLET_SEED=1dec0dd58fbe4d3206ef960aebff95a77e09dffbd19f3e9439d23fe6de4fcdd1 SYNC_CACHE=./src/test vitest run counter.api.test.ts",
     "prepare-standalone": "DEBUG='testcontainers' vitest run prepare-standalone.test.ts",        
-    "build": "rm -rf dist && tsc --project tsconfig.build.json",
+  "build": "rimraf dist && tsc --project tsconfig.build.json",
     "lint": "eslint src",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "run-proof-server-testnet": "docker compose -f proof-server-testnet.yml up"    
@@ -31,6 +33,16 @@
     "@midnight-ntwrk/wallet-sdk-hd": "^2.0.0",
     "bip32": "^5.0.0-rc.0",
     "bip39": "^3.1.0",
-    "effect": "^3.16.16"
+    "effect": "^3.16.16",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "helmet": "^7.1.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/multer": "^1.4.11",
+    "rimraf": "^6.0.1"
   }
 }

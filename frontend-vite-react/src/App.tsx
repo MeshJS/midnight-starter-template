@@ -7,7 +7,6 @@ import {
 } from "@midnight-ntwrk/midnight-js-network-id";
 import { ThemeProvider } from "./components/theme-provider";
 import { IncomeVerificationService } from "./services/IncomeVerificationService";
-import { IncomeData } from "./types/income-verification";
 import { MidnightWallet } from "@/modules/midnight/wallet-widget";
 
 // Set up logging and network
@@ -30,23 +29,17 @@ function EclipseProofApp() {
   const [view, setView] = useState("prover"); // 'prover' or 'verifier'
 
   // State for the Prover View
-  const [file, setFile] = useState<File | null>(null);
-  const [fileChosenText, setFileChosenText] = useState(
-    "Choose a payslip file..."
-  );
+  const [payslipJson, setPayslipJson] = useState("");
   const [desiredAmount, setDesiredAmount] = useState("");
   const [proverName, setProverName] = useState("");
   const [proverDOB, setProverDOB] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [proofKey, setProofKey] = useState("");
+  const [proofHash, setProofHash] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
-  const [extractedIncome, setExtractedIncome] = useState<IncomeData | null>(
-    null
-  );
   const [error, setError] = useState<string>("");
 
   // State for the Verifier View
-  const [verifyKey, setVerifyKey] = useState("");
+  const [verifyHash, setVerifyHash] = useState("");
   const [requiredAmount, setRequiredAmount] = useState("");
   const [verifierName, setVerifierName] = useState("");
   const [verifierDOB, setVerifierDOB] = useState("");
@@ -67,15 +60,10 @@ function EclipseProofApp() {
   // === EVENT HANDLERS ===
   // These are the functions that run when you click buttons or type in boxes.
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      const selectedFile = event.target.files[0];
-      setFile(selectedFile);
-      setFileChosenText(selectedFile.name);
-      setError("");
-      setExtractedIncome(null);
-      setProofKey("");
-    }
+  const handlePayslipJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPayslipJson(event.target.value);
+    setError("");
+    setProofHash("");
   };
 
   const handleGenerateProof = async () => {
@@ -84,8 +72,8 @@ function EclipseProofApp() {
       return;
     }
 
-    if (!file || !desiredAmount) {
-      setError("Please upload a payslip and enter the desired amount.");
+    if (!payslipJson || !desiredAmount) {
+      setError("Please enter payslip JSON and the desired amount.");
       return;
     }
 
@@ -96,25 +84,28 @@ function EclipseProofApp() {
       return;
     }
 
+    // Validate JSON format
+    try {
+      JSON.parse(payslipJson);
+    } catch (err) {
+      setError("Please enter valid JSON format for payslip data.");
+      return;
+    }
+
     setIsLoading(true);
-    setProofKey("");
+    setProofHash("");
     setError("");
 
     try {
-      // Step 1: Extract income data from the uploaded file
-      const incomeData = await verificationService.extractIncomeFromFile(file);
-      setExtractedIncome(incomeData);
+      // Generate proof using the new service method
+      const proofHash = await verificationService.generateProofFromJson({
+        name: proverName,
+        payslipJson: payslipJson,
+        dateOfBirth: proverDOB,
+        amountToProve: parseInt(desiredAmount)
+      });
 
-      console.log("Extracted income:", incomeData.amount);
-
-      // Step 2: Generate the zero-knowledge proof with personal details
-      const proof = await verificationService.generateIncomeProof(
-        incomeData,
-        parseInt(desiredAmount),
-        { name: proverName, dob: proverDOB }
-      );
-
-      setProofKey(proof);
+      setProofHash(proofHash);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to generate proof";
@@ -125,8 +116,8 @@ function EclipseProofApp() {
     }
   };
 
-  const handleCopyKey = () => {
-    navigator.clipboard.writeText(proofKey).then(() => {
+  const handleCopyHash = () => {
+    navigator.clipboard.writeText(proofHash).then(() => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     });
@@ -141,9 +132,9 @@ function EclipseProofApp() {
       return;
     }
 
-    if (!verifyKey || !requiredAmount) {
+    if (!verifyHash || !requiredAmount) {
       setVerificationError(
-        "Please provide a proof key and the required income amount."
+        "Please provide a proof hash and the required income amount."
       );
       return;
     }
@@ -160,12 +151,11 @@ function EclipseProofApp() {
     setVerificationError("");
 
     try {
-      const result = await verificationService.verifyIncomeProof({
-        proofKey: verifyKey,
-        requiredMinIncome: parseInt(requiredAmount),
-        currency: "GBP",
-        applicantName: verifierName,
-        applicantDOB: verifierDOB,
+      const result = await verificationService.verifyProofFromBlockchain({
+        proofHash: verifyHash,
+        name: verifierName,
+        dateOfBirth: verifierDOB,
+        requiredAmount: parseInt(requiredAmount)
       });
 
       if (result.error) {
@@ -312,28 +302,17 @@ function EclipseProofApp() {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                1. Upload Your Payslip
+                1. Enter Your Payslip Data (JSON Format)
               </label>
-              <label className="w-full flex items-center justify-center px-4 py-3 bg-slate-700 text-slate-300 rounded-lg cursor-pointer hover:bg-slate-600">
-                <span className="text-sm">{fileChosenText}</span>
-                <input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-              </label>
-              {extractedIncome && (
-                <div className="mt-2 p-3 bg-green-900/30 border border-green-700 rounded-lg">
-                  <p className="text-green-300 text-sm">
-                    ✅ Detected Income: £
-                    {extractedIncome.amount.toLocaleString()}
-                    <span className="text-green-400 ml-2">
-                      (Processed from document)
-                    </span>
-                  </p>
-                </div>
-              )}
+              <textarea
+                value={payslipJson}
+                onChange={handlePayslipJsonChange}
+                placeholder='{"employerName": "Company Ltd", "grossPay": 5000, "netPay": 3800, "payPeriod": "monthly", "currency": "GBP"}'
+                className="w-full h-32 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono resize-none"
+              />
+              <p className="text-slate-400 text-xs mt-1">
+                💡 Enter your payslip information in JSON format. Include fields like employerName, grossPay, netPay, payPeriod, etc.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -385,14 +364,7 @@ function EclipseProofApp() {
                 placeholder="e.g., 2500"
                 className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
               />
-              {extractedIncome &&
-                desiredAmount &&
-                parseInt(desiredAmount) > extractedIncome.amount && (
-                  <p className="mt-1 text-red-400 text-sm">
-                    ⚠️ Warning: You're trying to prove £{desiredAmount} but your
-                    income is £{extractedIncome.amount}
-                  </p>
-                )}
+
               <p className="text-slate-500 text-xs mt-1">
                 💡 Your identity details will be cryptographically hashed for
                 privacy protection
@@ -415,25 +387,25 @@ function EclipseProofApp() {
                 : "🔐 Generate Privacy Proof"}
               {isLoading && <div className="loader w-5 h-5 ml-2"></div>}
             </button>
-            {proofKey && (
+            {proofHash && (
               <div className="fade-in">
                 <div className="p-4 bg-slate-900 border border-slate-600 rounded-lg">
                   <p className="text-slate-300 text-sm mb-2">
-                    🎉 Your Privacy Proof (share this with verifiers):
+                    🎉 Your Proof Hash (share this with verifiers):
                   </p>
                   <div className="flex items-center justify-between bg-slate-800 p-3 rounded">
                     <code className="text-indigo-300 text-sm font-mono break-all">
-                      {proofKey}
+                      {proofHash}
                     </code>
                     <button
-                      onClick={handleCopyKey}
+                      onClick={handleCopyHash}
                       className="ml-4 p-2 rounded-md hover:bg-slate-700 flex-shrink-0"
                     >
                       {copySuccess ? "✅" : "📋"}
                     </button>
                   </div>
                   <p className="text-slate-400 text-xs mt-2">
-                    This proof shows you earn at least £{desiredAmount} without
+                    This hash represents your proof on the blockchain showing you earn at least £{desiredAmount} without
                     revealing your exact income.
                   </p>
                 </div>
@@ -456,17 +428,17 @@ function EclipseProofApp() {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                1. Paste Proof from Prover
+                1. Paste Proof Hash from Prover
               </label>
               <input
                 type="text"
-                value={verifyKey}
-                onChange={(e) => setVerifyKey(e.target.value)}
-                placeholder="zk_proof_..."
+                value={verifyHash}
+                onChange={(e) => setVerifyHash(e.target.value)}
+                placeholder="hash_abc123..."
                 className="form-input block w-full py-2 px-3 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
               />
               <p className="text-slate-500 text-xs mt-1">
-                The prover should share their proof key with you
+                The prover should share their proof hash with you
               </p>
             </div>
 

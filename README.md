@@ -1,10 +1,50 @@
-# 🔐 EclipseProof
+# 🔐 EclipseProof - Integrated Full Stack Application
 
 > 🏆 **Built for MLH Midnight Hackathon 2025**
 
 **Privacy-Preserving Income Verification Using Zero-Knowledge Proofs**
 
 EclipseProof revolutionizes income verification by allowing individuals to prove they meet income requirements without revealing their exact salary, employer details, or other sensitive financial information.
+
+## 🏗️ Architecture
+
+This integrated application consists of:
+
+- **Backend (`eclipseproof-cli/`)**: Express.js API server with Midnight Network contract integration
+- **Frontend (`frontend-vite-react/`)**: React application with modern UI for proof generation and verification
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+- Node.js 18+ 
+- npm 10+
+- Docker (for proof server)
+
+### Installation and Setup
+
+1. **Clone and Install Dependencies**
+   ```bash
+   git clone <repository-url>
+   cd EclipseProof
+   npm run setup
+   ```
+
+2. **Start the Integrated Application**
+   ```bash
+   # Start both backend API and frontend
+   npm run start-app
+   ```
+
+   **OR for full testnet integration:**
+   ```bash
+   # Start proof server, backend API, and frontend
+   npm run start-app-testnet
+   ```
+
+3. **Access the Application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:3001
+   - API Health Check: http://localhost:3001/health
 
 ## 🙏 Acknowledgments
 

@@ -15,7 +15,8 @@ import {
 } from './api';
 import { setupProviders } from './config';
 import type { DeployedProverContract, ProverProviders } from './common-types';
-import type { EclipseProofPrivateState } from './eclipseproof-contract-compat';
+import type { EclipseProofPrivateState } from './contract-types';
+import { generateSecretKey } from './contract-types';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -81,8 +82,11 @@ async function ensureContractInitialized(): Promise<DeployedProverContract> {
 
         // Deploy new contract with initial state
         const initialState: EclipseProofPrivateState = {
-            proofs: [],
-            status: 'idle'
+            secretKey: generateSecretKey(), // Generate a proper secret key
+            name: undefined,
+            dateOfBirth: undefined,
+            netPay: undefined,
+            claimedEarnings: undefined
         };
         deployedContract = await deploy(providers, initialState);
         logger.info('Deployed new contract on-demand');

@@ -1,0 +1,42 @@
+{
+  "name": "eclipseproof-contract",
+  "version": "1.0.0",
+  "description": "Eclipse Proof: Zero-Knowledge Earnings Verification Contract for Midnight",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf dist managed && compact compile src/eclipseproof.compact dist && tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist managed node_modules",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [
+    "midnight",
+    "zero-knowledge",
+    "earnings",
+    "proof",
+    "verification",
+    "zk-snark"
+  ],
+  "author": "Eclipse Proof Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.8.1",
+    "@midnight-ntwrk/midnight-js-network-id": "2.0.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@types/node": "^20.14.11",
+    "eslint": "^9.9.0",
+    "globals": "^15.9.0",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.0.1",
+    "vitest": "^2.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

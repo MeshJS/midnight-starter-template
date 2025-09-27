@@ -1,0 +1,286 @@
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+
+// Eclipse Proof: Zero-Knowledge Earnings Verification Contract
+pragma language_version 0.17;
+
+import CompactStandardLibrary;
+import "./modules/Ownable" prefix Ownable_;
+
+// =====================
+// ====== Types ========
+// =====================
+
+export struct EarningsProof {
+    epoch: Uint<64>;          // Version/timestamp of the proof
+    userHash: Bytes<32>;      // Hash of (name + DOB) for user identification
+    claimedAmount: Uint<64>;  // Amount user claims to earn
+    verified: Uint<1>;        // 1 if earnings are verified, 0 otherwise
+    timestamp: Uint<64>;      // When the proof was created
+}
+
+export struct VerificationRequest {
+    userHash: Bytes<32>;      // Hash of (name + DOB) to identify user
+    requiredAmount: Uint<64>; // Minimum earnings amount to verify
+    requesterId: Bytes<32>;   // Public key of the verifier making the request
+}
+
+// =====================
+// ====== Ledger =======
+// =====================
+
+export ledger epoch: Counter;
+export ledger instance: Counter;
+
+// Map from user public key to their earnings proof
+export ledger earningsProofs: Map<Bytes<32>, EarningsProof>;
+
+// Map from request ID to verification requests
+export ledger verificationRequests: Map<Bytes<32>, VerificationRequest>;
+
+// Minimum net pay threshold (can be updated by owner)
+export ledger minNetPayThreshold: Uint<64>;
+
+// =====================
+// ===== Witnesses =====
+// =====================
+
+witness userSecretKey(): Bytes<32>;
+witness userName(): Bytes<32>;           // User's name (padded to 32 bytes)
+witness userDateOfBirth(): Bytes<32>;    // User's DOB (padded to 32 bytes)
+witness netPayFromPayslip(): Uint<64>;   // Net pay amount from payslip
+witness claimedEarnings(): Uint<64>;     // Amount user wants to prove as earnings
+
+// ==========================
+// ====== Constructor =======
+// ==========================
+
+constructor(initialOwner: Either<ZswapCoinPublicKey, ContractAddress>) {
+    instance.increment(1 as Uint<16>);
+    epoch.increment(1 as Uint<16>);
+    Ownable_initialize(initialOwner);
+
+    // Default minimum net pay threshold (can be adjusted)
+    minNetPayThreshold = disclose(1000 as Uint<64>);
+}
+
+// =====================
+// ===== Helpers =======
+// =====================
+
+export pure circuit publicKey(inst: Bytes<32>, sk: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>([pad(32, "eclipse:pk"), inst, sk]);
+}
+
+circuit userPublicKey(): Bytes<32> {
+    const instB = (instance as Field) as Bytes<32>;
+    return publicKey(instB, userSecretKey());
+}
+
+// Create a hash from name and DOB for user identification
+export pure circuit createUserHash(name: Bytes<32>, dob: Bytes<32>): Bytes<32> {
+    return persistentHash<Vector<3, Bytes<32>>>([pad(32, "eclipse:user"), name, dob]);
+}
+
+circuit getUserHash(): Bytes<32> {
+    return createUserHash(userName(), userDateOfBirth());
+}
+
+// Get current timestamp (simplified - in real implementation would use block timestamp)
+circuit getCurrentTimestamp(): Uint<64> {
+    return (epoch as Field) as Uint<64>;
+}
+
+// ===============================
+// ===== Admin Functions ========
+// ===============================
+
+export circuit bumpEpoch(): [] {
+    Ownable_assertOnlyOwner();
+    epoch.increment(1 as Uint<16>);
+}
+
+export circuit setMinNetPayThreshold(threshold: Uint<64>): [] {
+    Ownable_assertOnlyOwner();
+    assert(threshold > (0 as Uint<64>), "threshold must be > 0");
+    minNetPayThreshold = disclose(threshold);
+}
+
+export circuit revokeEarningsProof(userPk: Bytes<32>): [] {
+    Ownable_assertOnlyOwner();
+    assert(earningsProofs.member(disclose(userPk)), "no proof found");
+    earningsProofs.remove(disclose(userPk));
+}
+
+// ===================================
+// ===== User Enrollment/Proofs =====
+// ===================================
+
+export circuit enrollAndProveEarnings(): [] {
+    const userPk = userPublicKey();
+    assert(!earningsProofs.member(disclose(userPk)), "already enrolled");
+
+    // Verify that net pay from payslip meets minimum threshold
+    assert(netPayFromPayslip() >= minNetPayThreshold, "net pay below threshold");
+
+    // Verify that claimed earnings don't exceed net pay (anti-fraud)
+    assert(claimedEarnings() <= netPayFromPayslip(), "claimed earnings exceed net pay");
+
+    // Create user hash from name and DOB
+    const userHash = getUserHash();
+    const timestamp = getCurrentTimestamp();
+    const currentEpoch = (epoch as Field) as Uint<64>;
+
+    // Create and store the earnings proof
+    earningsProofs.insert(disclose(userPk), disclose(EarningsProof {
+        epoch: currentEpoch,
+        userHash: userHash,
+        claimedAmount: claimedEarnings(),
+        verified: 1 as Uint<1>,
+        timestamp: timestamp
+    }));
+}
+
+export circuit updateEarningsProof(): [] {
+    const userPk = userPublicKey();
+    assert(earningsProofs.member(disclose(userPk)), "not enrolled");
+
+    // Verify that net pay from new payslip meets minimum threshold
+    assert(netPayFromPayslip() >= minNetPayThreshold, "net pay below threshold");
+
+    // Verify that claimed earnings don't exceed net pay
+    assert(claimedEarnings() <= netPayFromPayslip(), "claimed earnings exceed net pay");
+
+    const userHash = getUserHash();
+    const timestamp = getCurrentTimestamp();
+    const currentEpoch = (epoch as Field) as Uint<64>;
+
+    // Update the earnings proof
+    earningsProofs.insert(disclose(userPk), disclose(EarningsProof {
+        epoch: currentEpoch,
+        userHash: userHash,
+        claimedAmount: claimedEarnings(),
+        verified: 1 as Uint<1>,
+        timestamp: timestamp
+    }));
+}
+
+// ===================================
+// ===== Verification Functions =====
+// ===================================
+
+export circuit createVerificationRequest(
+    targetUserHash: Bytes<32>,
+    requiredAmount: Uint<64>
+): Bytes<32> {
+    const requesterId = userPublicKey();
+    
+    // Create unique request ID
+    const requestId = persistentHash<Vector<4, Bytes<32>>>([
+        pad(32, "eclipse:req"),
+        targetUserHash,
+        requesterId,
+        (requiredAmount as Field) as Bytes<32>
+    ]);
+
+    // Store the verification request
+    verificationRequests.insert(disclose(requestId), disclose(VerificationRequest {
+        userHash: targetUserHash,
+        requiredAmount: requiredAmount,
+        requesterId: requesterId
+    }));
+
+    return disclose(requestId);
+}
+
+export circuit verifyEarningsByHash(
+    targetUserHash: Bytes<32>,
+    requiredAmount: Uint<64>
+): Uint<1> {
+    // Find the user's proof by searching through all proofs
+    // Note: In a real implementation, you might want a more efficient lookup
+    
+    // For now, we'll assume the verifier knows the user's public key
+    // This would typically be provided through an off-chain lookup or registry
+    
+    // This is a simplified version - in practice you'd need additional infrastructure
+    // to map user hashes to public keys efficiently
+    
+    return disclose(0 as Uint<1>); // Placeholder - needs user PK to lookup proof
+}
+
+export circuit verifyEarningsByUserPk(
+    userPk: Bytes<32>,
+    expectedUserHash: Bytes<32>,
+    requiredAmount: Uint<64>
+): Uint<1> {
+    assert(earningsProofs.member(disclose(userPk)), "no proof found");
+    
+    const proof = earningsProofs.lookup(disclose(userPk));
+    
+    // Verify the user hash matches
+    assert(proof.userHash == expectedUserHash, "user hash mismatch");
+    
+    // Check if the user meets the required earnings amount
+    const meetsRequirement = (proof.claimedAmount >= requiredAmount && proof.verified == (1 as Uint<1>))
+        ? (1 as Uint<1>) : (0 as Uint<1>);
+    
+    return disclose(meetsRequirement);
+}
+
+// ===========================
+// ===== Query Functions ====
+// ===========================
+
+export circuit getEpoch(): Uint<64> {
+    return (epoch as Field) as Uint<64>;
+}
+
+export circuit getInstanceBytes(): Bytes<32> {
+    return (instance as Field) as Bytes<32>;
+}
+
+export circuit getMinNetPayThreshold(): Uint<64> {
+    return minNetPayThreshold;
+}
+
+export circuit getMyEarningsProof(): EarningsProof {
+    const userPk = userPublicKey();
+    assert(earningsProofs.member(disclose(userPk)), "no proof found");
+    return disclose(earningsProofs.lookup(disclose(userPk)));
+}
+
+export circuit getEarningsProofByPk(userPk: Bytes<32>): EarningsProof {
+    assert(earningsProofs.member(disclose(userPk)), "no proof found");
+    return earningsProofs.lookup(disclose(userPk));
+}
+
+export circuit checkEarningsThreshold(userPk: Bytes<32>, threshold: Uint<64>): Uint<1> {
+    assert(earningsProofs.member(disclose(userPk)), "no proof found");
+    const proof = earningsProofs.lookup(disclose(userPk));
+    
+    const meetsThreshold = (proof.claimedAmount >= threshold && proof.verified == (1 as Uint<1>))
+        ? (1 as Uint<1>) : (0 as Uint<1>);
+    
+    return meetsThreshold;
+}
+
+// ===============================
+// ===== Ownable Functions ======
+// ===============================
+
+export circuit owner(): Either<ZswapCoinPublicKey, ContractAddress> {
+    return Ownable_owner();
+}
+
+export circuit transferOwnership(newOwner: Either<ZswapCoinPublicKey, ContractAddress>): [] {
+    Ownable_transferOwnership(newOwner);
+}
+
+export circuit renounceOwnership(): [] {
+    Ownable_renounceOwnership();
+}

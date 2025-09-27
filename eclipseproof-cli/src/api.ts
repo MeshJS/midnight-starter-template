@@ -1,5 +1,10 @@
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { EclipseProof, type EclipseProofPrivateState, witnesses } from './eclipseproof-contract-compat';
+import { type EclipseProofPrivateState, witnesses } from './contract-types';
+import { createRequire } from 'module';
+
+// Import the compiled contract
+const require = createRequire(import.meta.url);
+const EclipseProofContractModule = require('../../eclipseproof-contract/src/managed/eclipseproof/contract/index.cjs');
 import { type CoinInfo, nativeToken, Transaction, type TransactionId } from '@midnight-ntwrk/ledger';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
@@ -58,7 +63,7 @@ export const getProverLedgerState = async (
   return state;
 };
 
-export const eclipseProofContractInstance: EclipseProofContract = new EclipseProof.Contract(witnesses);
+export const eclipseProofContractInstance: EclipseProofContract = new EclipseProofContractModule.Contract(witnesses);
 
 // Legacy export for backward compatibility
 export const proverContractInstance: ProverContract = eclipseProofContractInstance;

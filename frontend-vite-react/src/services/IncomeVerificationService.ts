@@ -40,7 +40,8 @@ export class IncomeVerificationService {
    */
   async generateIncomeProof(
     incomeData: IncomeData,
-    minIncomeToProve: number
+    minIncomeToProve: number,
+    personalDetails?: { name: string; dob: string }
   ): Promise<string> {
     console.log("Generating proof for income verification...");
     console.log("Actual income:", incomeData.amount);
@@ -57,12 +58,28 @@ export class IncomeVerificationService {
     // In reality, this would use the Midnight Network's Compact contract
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
+    // Generate hashes for identity verification (in real implementation, these would be cryptographic hashes)
+    let nameHash = "";
+    let dobHash = "";
+    let personalDataHash = "";
+
+    if (personalDetails) {
+      nameHash = this.generateHash(personalDetails.name.toLowerCase());
+      dobHash = this.generateHash(personalDetails.dob);
+      personalDataHash = this.generateHash(
+        personalDetails.name.toLowerCase() + personalDetails.dob
+      );
+    }
+
     // Generate a realistic-looking proof key
     const proofData = {
       minIncome: minIncomeToProve,
       currency: incomeData.currency,
       timestamp: Date.now(),
       actualIncome: incomeData.amount, // This would be hidden in real ZK proof
+      nameHash,
+      dobHash,
+      personalDataHash,
     };
 
     const proofKey = this.generateProofKey(proofData);
@@ -74,6 +91,9 @@ export class IncomeVerificationService {
       currency: incomeData.currency,
       timestamp: proofData.timestamp,
       isValid: true,
+      nameHash,
+      dobHash,
+      personalDataHash,
     };
 
     this.storeProof(proofKey, proof);
@@ -100,16 +120,38 @@ export class IncomeVerificationService {
           isValid: false,
           timestamp: Date.now(),
           meetsRequirement: false,
+          identityMatches: false,
           error: "Proof key not found or invalid",
         };
       }
 
       const meetsRequirement = proof.minIncome >= request.requiredMinIncome;
 
+      // Verify identity details by comparing hashes
+      const providedNameHash = this.generateHash(
+        request.applicantName.toLowerCase()
+      );
+      const providedDobHash = this.generateHash(request.applicantDOB);
+
+      const identityMatches =
+        proof.nameHash === providedNameHash &&
+        proof.dobHash === providedDobHash;
+
+      if (!identityMatches) {
+        return {
+          isValid: proof.isValid,
+          timestamp: Date.now(),
+          meetsRequirement: false,
+          identityMatches: false,
+          error: "Identity details do not match the proof",
+        };
+      }
+
       return {
         isValid: proof.isValid,
         timestamp: Date.now(),
         meetsRequirement,
+        identityMatches,
         error: meetsRequirement
           ? undefined
           : `Proof only guarantees £${proof.minIncome}, but £${request.requiredMinIncome} is required`,
@@ -119,12 +161,25 @@ export class IncomeVerificationService {
         isValid: false,
         timestamp: Date.now(),
         meetsRequirement: false,
+        identityMatches: false,
         error: `Verification failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       };
     }
   }
 
   // SIMULATION METHODS (Replace with real Midnight Network integration)
+
+  private generateHash(input: string): string {
+    // Simple hash simulation for demo purposes
+    // In real implementation, this would use a proper cryptographic hash function
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16);
+  }
 
   private simulateIncomeExtraction(file: File): number {
     // Simulate different income levels based on file characteristics

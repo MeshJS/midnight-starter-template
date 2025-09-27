@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { MidnightMeshProvider } from "@meshsdk/midnight-react";
 import * as pino from "pino";
 import {
@@ -35,6 +34,8 @@ function EclipseProofApp() {
     "Choose a payslip file..."
   );
   const [desiredAmount, setDesiredAmount] = useState("");
+  const [proverName, setProverName] = useState("");
+  const [proverDOB, setProverDOB] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [proofKey, setProofKey] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
@@ -46,6 +47,9 @@ function EclipseProofApp() {
   // State for the Verifier View
   const [verifyKey, setVerifyKey] = useState("");
   const [requiredAmount, setRequiredAmount] = useState("");
+  const [verifierName, setVerifierName] = useState("");
+  const [verifierDOB, setVerifierDOB] = useState("");
+  const [verifierHash, setVerifierHash] = useState("");
   const [verificationResult, setVerificationResult] = useState<
     "success" | "failed" | null
   >(null);
@@ -74,6 +78,13 @@ function EclipseProofApp() {
       return;
     }
 
+    if (!proverName || !proverDOB) {
+      setError(
+        "Please enter your name and date of birth for identity verification."
+      );
+      return;
+    }
+
     setIsLoading(true);
     setProofKey("");
     setError("");
@@ -85,10 +96,11 @@ function EclipseProofApp() {
 
       console.log("Extracted income:", incomeData.amount);
 
-      // Step 2: Generate the zero-knowledge proof
+      // Step 2: Generate the zero-knowledge proof with personal details
       const proof = await verificationService.generateIncomeProof(
         incomeData,
-        parseInt(desiredAmount)
+        parseInt(desiredAmount),
+        { name: proverName, dob: proverDOB }
       );
 
       setProofKey(proof);
@@ -117,6 +129,13 @@ function EclipseProofApp() {
       return;
     }
 
+    if (!verifierName || !verifierDOB) {
+      setVerificationError(
+        "Please enter the applicant's name and date of birth for verification."
+      );
+      return;
+    }
+
     setIsLoading(true);
     setVerificationResult(null);
     setVerificationError("");
@@ -126,10 +145,18 @@ function EclipseProofApp() {
         proofKey: verifyKey,
         requiredMinIncome: parseInt(requiredAmount),
         currency: "GBP",
+        applicantName: verifierName,
+        applicantDOB: verifierDOB,
+        expectedHash: verifierHash || undefined,
       });
 
       if (result.error) {
         setVerificationError(result.error);
+        setVerificationResult("failed");
+      } else if (!result.identityMatches) {
+        setVerificationError(
+          "Identity verification failed. The provided details do not match the proof."
+        );
         setVerificationResult("failed");
       } else {
         setVerificationResult(
@@ -258,15 +285,51 @@ function EclipseProofApp() {
                 </div>
               )}
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="prover-name"
+                  className="block text-sm font-medium text-slate-300 mb-2"
+                >
+                  2a. Your Full Name
+                </label>
+                <input
+                  type="text"
+                  id="prover-name"
+                  value={proverName}
+                  onChange={(e) => setProverName(e.target.value)}
+                  placeholder="e.g., John Smith"
+                  className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="prover-dob"
+                  className="block text-sm font-medium text-slate-300 mb-2"
+                >
+                  2b. Date of Birth
+                </label>
+                <input
+                  type="date"
+                  id="prover-dob"
+                  value={proverDOB}
+                  onChange={(e) => setProverDOB(e.target.value)}
+                  className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
             <div>
               <label
                 htmlFor="desired-amount"
                 className="block text-sm font-medium text-slate-300 mb-2"
               >
-                2. Minimum Income to Prove (£)
+                3. Minimum Income to Prove (£)
               </label>
               <input
                 type="number"
+                id="desired-amount"
                 value={desiredAmount}
                 onChange={(e) => setDesiredAmount(e.target.value)}
                 placeholder="e.g., 2500"
@@ -280,6 +343,10 @@ function EclipseProofApp() {
                     income is £{extractedIncome.amount}
                   </p>
                 )}
+              <p className="text-slate-500 text-xs mt-1">
+                💡 Your identity details will be cryptographically hashed for
+                privacy protection
+              </p>
             </div>
 
             {error && (
@@ -352,9 +419,44 @@ function EclipseProofApp() {
                 The prover should share their proof key with you
               </p>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="verifier-name"
+                  className="block text-sm font-medium text-slate-300 mb-2"
+                >
+                  2a. Applicant's Full Name
+                </label>
+                <input
+                  type="text"
+                  id="verifier-name"
+                  value={verifierName}
+                  onChange={(e) => setVerifierName(e.target.value)}
+                  placeholder="e.g., John Smith"
+                  className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="verifier-dob"
+                  className="block text-sm font-medium text-slate-300 mb-2"
+                >
+                  2b. Applicant's Date of Birth
+                </label>
+                <input
+                  type="date"
+                  id="verifier-dob"
+                  value={verifierDOB}
+                  onChange={(e) => setVerifierDOB(e.target.value)}
+                  className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                2. Your Minimum Income Requirement (£)
+                3. Your Minimum Income Requirement (£)
               </label>
               <input
                 type="number"
@@ -365,6 +467,27 @@ function EclipseProofApp() {
               />
               <p className="text-slate-500 text-xs mt-1">
                 Enter the minimum income you require for approval
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="verifier-hash"
+                className="block text-sm font-medium text-slate-300 mb-2"
+              >
+                4. Additional Hash (Optional)
+              </label>
+              <input
+                type="text"
+                id="verifier-hash"
+                value={verifierHash}
+                onChange={(e) => setVerifierHash(e.target.value)}
+                placeholder="Additional verification hash (if provided)"
+                className="form-input block w-full pl-3 pr-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
+              />
+              <p className="text-slate-500 text-xs mt-1">
+                🔒 Identity verification ensures the proof matches the specific
+                applicant
               </p>
             </div>
 

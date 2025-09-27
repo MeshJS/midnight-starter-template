@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "workspaces": [
+    "bulletin-board",
+    "bulletin-board-cli",
+    "counter-cli",
+    "counter-contract",
     "eclipseproof-cli",
     "eclipseproof-contract",
     "frontend-vite-react"

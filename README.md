@@ -16,13 +16,15 @@ This integrated application consists of:
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - npm 10+
 - Docker (for proof server)
 
 ### Installation and Setup
 
 1. **Clone and Install Dependencies**
+
    ```bash
    git clone <repository-url>
    cd EclipseProof
@@ -30,12 +32,14 @@ This integrated application consists of:
    ```
 
 2. **Start the Integrated Application**
+
    ```bash
    # Start both backend API and frontend
    npm run start-app
    ```
 
    **OR for full testnet integration:**
+
    ```bash
    # Start proof server, backend API, and frontend
    npm run start-app-testnet
@@ -174,7 +178,18 @@ EclipseProof/
 └── README.md                    # This file
 ```
 
+## 🔑 Midnight Lace Wallet Setup
+
+- Install the **Midnight Lace (testnet)** extension in Chrome 119 or newer. Load the unpacked build if you are using the current alpha.
+- Create a Midnight testnet profile and configure the node, indexer, and local proof-server URIs during onboarding.
+- Ensure you are running versions that match: Lace ≥ 2.0.0 works best with `midnight.js` ≥ 1.0.0 (this starter already meets the requirement).
+- Brave/Edge users may need to disable shields for localhost so the wallet can talk to the proof server.
+- After the page loads, the dApp looks for the injected provider at `window.midnight` (and `window.cardano.midnight`). If it is not found, the UI prompts you to connect/install.
+- When you press **Connect Wallet**, the app now calls `provider.enable()` before delegating to the Mesh SDK connect flow, so Lace can show the authorization prompt and cache the session.
+
 ## 🎮 Usage Guide
+
+> 🔑 **Before you begin:** Click the **Connect Wallet** button in the EclipseProof header to sign in with your Midnight wallet. Generating or verifying proofs now requires an active wallet connection so actions are tied to your Midnight identity.
 
 ### 👤 As a Prover (Proving Your Income)
 

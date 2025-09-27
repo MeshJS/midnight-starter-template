@@ -7,6 +7,7 @@ import { type StartedDockerComposeEnvironment, type DockerComposeEnvironment } f
 import { readFile } from 'node:fs/promises';
 import { type ProverProviders, type DeployedProverContract } from './common-types';
 import { type Config, StandaloneConfig } from './config';
+import { generateSecretKey } from './contract-types';
 import * as api from './api';
 
 let logger: Logger;
@@ -348,7 +349,13 @@ const autoDeployOrJoin = async (providers: ProverProviders): Promise<DeployedPro
     return existingContract;
   } else {
     logger.info('No existing contract found. Deploying new contract...');
-    const newContract = await api.deploy(providers, { proofs: [], status: 'idle' });
+    const newContract = await api.deploy(providers, { 
+      secretKey: generateSecretKey(),
+      name: undefined,
+      dateOfBirth: undefined,
+      netPay: undefined,
+      claimedEarnings: undefined
+    });
     logger.info('✅ New contract deployed successfully!');
     return newContract;
   }

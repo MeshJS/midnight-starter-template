@@ -1,14 +1,19 @@
-import { EclipseProof, type EclipseProofPrivateState } from './eclipseproof-contract-compat';
+import type { EclipseProofPrivateState } from './contract-types';
 import type { ImpureCircuitId, MidnightProviders } from '@midnight-ntwrk/midnight-js-types';
 import type { DeployedContract, FoundContract } from '@midnight-ntwrk/midnight-js-contracts';
 
-export type EclipseProofCircuits = ImpureCircuitId<EclipseProof.Contract<EclipseProofPrivateState>>;
+// Import the compiled contract
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const EclipseProofContractModule = require('../../eclipseproof-contract/src/managed/eclipseproof/contract/index.cjs');
+
+export type EclipseProofCircuits = ImpureCircuitId<typeof EclipseProofContractModule.Contract>;
 
 export const EclipseProofPrivateStateId = 'eclipseProofPrivateState';
 
 export type EclipseProofProviders = MidnightProviders<EclipseProofCircuits, typeof EclipseProofPrivateStateId, EclipseProofPrivateState>;
 
-export type EclipseProofContract = EclipseProof.Contract<EclipseProofPrivateState>;
+export type EclipseProofContract = typeof EclipseProofContractModule.Contract;
 
 export type DeployedEclipseProofContract = DeployedContract<EclipseProofContract> | FoundContract<EclipseProofContract>;
 

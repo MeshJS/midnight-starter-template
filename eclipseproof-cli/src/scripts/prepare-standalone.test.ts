@@ -6,6 +6,7 @@ import type { Resource } from '@midnight-ntwrk/wallet';
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { type ProverProviders } from '../common-types';
+import { generateSecretKey } from '../contract-types';
 import * as api from '../api';
 import { currentDir } from '../config';
 import { createLogger } from '../logger-utils';
@@ -68,8 +69,11 @@ describe('Prepare Standalone', () => {
     // Test prover contract deployment
     try {
       const deployedContract = await api.deploy(providers, { 
-        proofs: [],
-        status: 'idle'
+        secretKey: generateSecretKey(),
+        name: undefined,
+        dateOfBirth: undefined,
+        netPay: undefined,
+        claimedEarnings: undefined
       });
       logger.info(`Prover contract deployed at: ${deployedContract.deployTxData.public.contractAddress}`);
       

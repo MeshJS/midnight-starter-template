@@ -15,6 +15,7 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "dev": "npm run dev:frontend",
     "dev:proof-server": "cd counter-cli && npm run run-proof-server-testnet",
     "dev:undeployed-instances": "cd counter-cli && npm run prepare-standalone",
     "dev:frontend": "cd frontend-vite-react && npm run dev",

@@ -60,7 +60,9 @@ function EclipseProofApp() {
   // === EVENT HANDLERS ===
   // These are the functions that run when you click buttons or type in boxes.
 
-  const handlePayslipJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handlePayslipJsonChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
     setPayslipJson(event.target.value);
     setError("");
     setProofHash("");
@@ -102,7 +104,7 @@ function EclipseProofApp() {
         name: proverName,
         payslipJson: payslipJson,
         dateOfBirth: proverDOB,
-        amountToProve: parseInt(desiredAmount)
+        amountToProve: parseInt(desiredAmount),
       });
 
       setProofHash(proofHash);
@@ -155,7 +157,7 @@ function EclipseProofApp() {
         proofHash: verifyHash,
         name: verifierName,
         dateOfBirth: verifierDOB,
-        requiredAmount: parseInt(requiredAmount)
+        requiredAmount: parseInt(requiredAmount),
       });
 
       if (result.error) {
@@ -311,7 +313,8 @@ function EclipseProofApp() {
                 className="w-full h-32 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm font-mono resize-none"
               />
               <p className="text-slate-400 text-xs mt-1">
-                💡 Enter your payslip information in JSON format. Include fields like employerName, grossPay, netPay, payPeriod, etc.
+                💡 Enter your payslip information in JSON format. Include fields
+                like employerName, grossPay, netPay, payPeriod, etc.
               </p>
             </div>
 
@@ -405,8 +408,9 @@ function EclipseProofApp() {
                     </button>
                   </div>
                   <p className="text-slate-400 text-xs mt-2">
-                    This hash represents your proof on the blockchain showing you earn at least £{desiredAmount} without
-                    revealing your exact income.
+                    This hash represents your proof on the blockchain showing
+                    you earn at least £{desiredAmount} without revealing your
+                    exact income.
                   </p>
                 </div>
               </div>

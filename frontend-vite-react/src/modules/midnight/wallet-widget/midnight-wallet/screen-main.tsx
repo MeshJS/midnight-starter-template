@@ -1,9 +1,9 @@
-import IconLace from '../common/icons/icon-lace';
-import { TooltipProvider } from '../common/tooltip';
-import { useWallet, useWalletList } from '@meshsdk/midnight-react';
-import WalletIcon from './wallet-icon';
-import { type JSX, useState } from 'react';
-import { ensureMidnightEnabled } from '../../provider';
+import IconLace from "../common/icons/icon-lace";
+import { TooltipProvider } from "../common/tooltip";
+import { useWallet, useWalletList } from "@meshsdk/midnight-react";
+import WalletIcon from "./wallet-icon";
+import { type JSX, useState } from "react";
+import { ensureMidnightEnabled } from "../../provider";
 
 export default function ScreenMain({
   setOpen,
@@ -16,9 +16,11 @@ export default function ScreenMain({
   const [connectError, setConnectError] = useState<string | null>(null);
   const [pendingWallet, setPendingWallet] = useState<string | null>(null);
 
-  const walletsConfig: { [key: string]: { key: string; displayName: string; icon: JSX.Element } } = {
-    lace: { key: 'mnLace', displayName: 'LACE', icon: <IconLace /> },
-    mnLace: { key: 'mnLace', displayName: 'LACE', icon: <IconLace /> },
+  const walletsConfig: {
+    [key: string]: { key: string; displayName: string; icon: JSX.Element };
+  } = {
+    lace: { key: "mnLace", displayName: "LACE", icon: <IconLace /> },
+    mnLace: { key: "mnLace", displayName: "LACE", icon: <IconLace /> },
   };
 
   const makeFallbackIcon = (label: string) => (
@@ -36,9 +38,9 @@ export default function ScreenMain({
       setOpen(false);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to connect wallet';
+        error instanceof Error ? error.message : "Failed to connect wallet";
       setConnectError(message);
-      console.error('Midnight wallet connect error:', error);
+      console.error("Midnight wallet connect error:", error);
     } finally {
       setPendingWallet(null);
     }
@@ -47,9 +49,9 @@ export default function ScreenMain({
   if (wallets.length === 0) {
     return (
       <div className="py-6 text-center text-sm text-slate-300">
-        No compatible Midnight wallets found. Install the Lace browser wallet (Midnight
-        edition) and refresh. Double-check you are on Chrome 119+ and using the Midnight
-        testnet profile.
+        No compatible Midnight wallets found. Install the Lace browser wallet
+        (Midnight edition) and refresh. Double-check you are on Chrome 119+ and
+        using the Midnight testnet profile.
       </div>
     );
   }

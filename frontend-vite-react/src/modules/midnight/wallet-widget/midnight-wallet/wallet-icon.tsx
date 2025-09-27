@@ -1,9 +1,5 @@
 import { useCallback } from "react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "../common/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../common/tooltip";
 import { cn } from "@/lib/utils";
 import { type ReactNode } from "react";
 

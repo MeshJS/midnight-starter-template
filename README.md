@@ -16,13 +16,15 @@ This integrated application consists of:
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
-- Node.js 18+ 
+
+- Node.js 18+
 - npm 10+
 - Docker (for proof server)
 
 ### Installation and Setup
 
 1. **Clone and Install Dependencies**
+
    ```bash
    git clone <repository-url>
    cd EclipseProof
@@ -30,12 +32,14 @@ This integrated application consists of:
    ```
 
 2. **Start the Integrated Application**
+
    ```bash
    # Start both backend API and frontend
    npm run start-app
    ```
 
    **OR for full testnet integration:**
+
    ```bash
    # Start proof server, backend API, and frontend
    npm run start-app-testnet

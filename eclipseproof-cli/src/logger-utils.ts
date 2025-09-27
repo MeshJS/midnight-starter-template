@@ -4,7 +4,7 @@ import pinoPretty from 'pino-pretty';
 import pino from 'pino';
 import { createWriteStream } from 'node:fs';
 
-export const createLogger = async (logPath: string): Promise<pino.Logger> => {
+export const createAsyncLogger = async (logPath: string): Promise<pino.Logger> => {
   await fs.mkdir(path.dirname(logPath), { recursive: true });
   const pretty: pinoPretty.PrettyStream = pinoPretty({
     colorize: true,
@@ -25,3 +25,23 @@ export const createLogger = async (logPath: string): Promise<pino.Logger> => {
     ]),
   );
 };
+
+// Simple synchronous logger for server use
+export function createLogger(name: string): pino.Logger {
+  const pretty: pinoPretty.PrettyStream = pinoPretty({
+    colorize: true,
+    sync: true,
+  });
+  const level =
+    process.env.DEBUG_LEVEL !== undefined && process.env.DEBUG_LEVEL !== null && process.env.DEBUG_LEVEL !== ''
+      ? process.env.DEBUG_LEVEL
+      : 'info';
+  return pino(
+    {
+      name,
+      level,
+      depthLimit: 20,
+    },
+    pretty
+  );
+}

@@ -35,10 +35,11 @@ import { type Config, contractConfig } from './config';
 import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
 import { assertIsContractAddress, toHex } from '@midnight-ntwrk/midnight-js-utils';
 import { getLedgerNetworkId, getZswapNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { createLogger } from './logger-utils';
 import * as fsAsync from 'node:fs/promises';
 import * as fs from 'node:fs';
 
-let logger: Logger;
+let logger: Logger = createLogger('api');
 // Instead of setting globalThis.crypto which is read-only, we'll ensure crypto is available
 // but won't try to overwrite the global property
 // @ts-expect-error: It's needed to enable WebSocket usage through apollo
@@ -156,6 +157,50 @@ export const generateProof = async (proverContract: DeployedProverContract): Pro
   });
 
   return mockTxData;
+};
+
+// Blockchain integration placeholders
+export const postProofToBlockchain = async (
+  proofHash: string,
+  proofData: any,
+  proverContract?: DeployedProverContract
+): Promise<{ txHash: string; blockHash: string }> => {
+  logger.info(`[PLACEHOLDER] Posting proof to Midnight blockchain...`);
+  logger.info(`Proof hash: ${proofHash}`);
+  logger.info(`Proof data: ${JSON.stringify(proofData)}`);
+  
+  // Mock blockchain transaction
+  const mockTxHash = `blockchain_tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const mockBlockHash = `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Simulate blockchain delay
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  logger.info(`[PLACEHOLDER] Proof posted successfully to blockchain`);
+  logger.info(`Transaction hash: ${mockTxHash}`);
+  logger.info(`Block hash: ${mockBlockHash}`);
+  
+  return {
+    txHash: mockTxHash,
+    blockHash: mockBlockHash
+  };
+};
+
+export const getProofFromBlockchain = async (
+  proofHash: string,
+  proverContract?: DeployedProverContract
+): Promise<any | null> => {
+  logger.info(`[PLACEHOLDER] Retrieving proof from Midnight blockchain...`);
+  logger.info(`Proof hash: ${proofHash}`);
+  
+  // Mock blockchain retrieval delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  // This would normally query the blockchain for the proof
+  // For now, return null to indicate proof should be retrieved from local storage
+  logger.info(`[PLACEHOLDER] Proof retrieval from blockchain - using local storage fallback`);
+  
+  return null;
 };
 
 // Note: Proof verification will be handled by a separate verification CLI

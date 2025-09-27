@@ -1,8 +1,24 @@
-# � EclipseProof
+# 🔐 EclipseProof
+
+> 🏆 **Built for MLH Midnight Hackathon 2025**
 
 **Privacy-Preserving Income Verification Using Zero-Knowledge Proofs**
 
 EclipseProof revolutionizes income verification by allowing individuals to prove they meet income requirements without revealing their exact salary, employer details, or other sensitive financial information.
+
+## 🙏 Acknowledgments
+
+- **MLH (Major League Hacking)**: For organizing the Midnight Hackathon
+- **Midnight Network**: For providing privacy-focused blockchain infrastructure
+- **Template Provider**: Built on the Midnight Network starter template
+- **Zero-Knowledge Community**: For advancing privacy-preserving technologies
+
+## 📞 Support & Contact
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/Utpal-Kalita/EclipseProof/issues)
+- **Email**: Contact via GitHub profile
+
+---
 
 ## 🌟 The Problem We Solve
 
@@ -127,7 +143,7 @@ EclipseProof/
 3. **Review Detected Income**: The system will show the extracted income amount
 4. **Enter Identity Details**: Provide your full name and date of birth
 5. **Set Proof Amount**: Enter the minimum income you want to prove (e.g., £2,500)
-6. **Generate Proof**: Click "Generate Privacy Proof" 
+6. **Generate Proof**: Click "Generate Privacy Proof"
 7. **Share Proof Key**: Copy the generated proof key and share it with your verifier
 
 ### 🏢 As a Verifier (Checking Income Proof)
@@ -144,6 +160,7 @@ EclipseProof/
 ### What Provers Keep Private:
 
 ### What Provers Keep Private:
+
 - ❌ Exact salary amount
 - ❌ Employer name and details
 - ❌ Bank account information
@@ -152,6 +169,7 @@ EclipseProof/
 - ❌ Raw personal details (only cryptographic hashes are used)
 
 ### What Verifiers Learn:
+
 - ✅ Whether income meets their minimum requirement
 - ✅ Whether identity details match the proof (via hash comparison)
 - ✅ Timestamp of verification
@@ -159,6 +177,7 @@ EclipseProof/
 - ❌ Nothing else! No exact income, names, or dates
 
 ### Security Features:
+
 - 🔐 **End-to-End Encryption**: All sensitive data encrypted
 - 🧬 **Cryptographic Hashing**: Personal details converted to irreversible hashes
 - 🌐 **Blockchain Security**: Proofs stored on decentralized network
@@ -170,24 +189,28 @@ EclipseProof/
 ## 🎯 Use Cases
 
 ### 🏠 **Rental Applications**
+
 - Landlords verify both income and identity without seeing sensitive details
 - Prevents application fraud with identity matching
 - Faster processing with instant verification
 - Enhanced privacy protection for tenants
 
 ### 🏦 **Loan Applications**
+
 - Banks verify income thresholds with identity confirmation
 - Prevents identity fraud in financial applications
 - Streamlined underwriting with cryptographic verification
 - Enhanced data protection compliance (GDPR, CCPA)
 
 ### 💼 **Employment Verification**
+
 - Employers verify candidate income claims with identity matching
 - Background checks without salary or personal detail exposure
 - Prevents resume fraud while protecting privacy
 - Reduced administrative overhead with automated verification
 
 ### 🎓 **Scholarship Applications**
+
 - Educational institutions verify income-based eligibility securely
 - Identity matching prevents application fraud
 - Simplified verification process for students
@@ -293,22 +316,3 @@ git push origin feature/amazing-feature
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Midnight Network**: For providing privacy-focused blockchain infrastructure
-- **Mesh SDK**: For React integration with Midnight Network
-- **Zero-Knowledge Community**: For advancing privacy-preserving technologies
-- **Open Source Contributors**: For making this project possible
-
-## 📞 Support & Contact
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/Utpal-Kalita/EclipseProof/issues)
-- **Documentation**: [Visit our docs](https://github.com/Utpal-Kalita/EclipseProof/wiki)
-- **Email**: Contact via GitHub profile
-
----
-
-**Built with ❤️ for Privacy | Powered by Zero-Knowledge Proofs | Secured by Midnight Network**
-
-_EclipseProof: Where Privacy Meets Verification_ 🔐✨

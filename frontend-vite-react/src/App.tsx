@@ -467,7 +467,8 @@ function EclipseProofApp() {
                 Enter the minimum income you require for approval
               </p>
               <p className="text-slate-500 text-xs mt-1">
-                🔒 Identity verification ensures the proof matches the specific applicant
+                🔒 Identity verification ensures the proof matches the specific
+                applicant
               </p>
             </div>
 

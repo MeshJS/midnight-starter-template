@@ -1,169 +1,161 @@
-// This file is part of Eclipse Proof Contract
-// Copyright (C) 2025 Eclipse Proof Team
+// This file is part of midnightntwrk/example-counter.
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 // http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-/*
- * This file defines the witness functions for the Eclipse Proof contract.
- * Witnesses provide private inputs that are verified through zero-knowledge proofs
- * without revealing the actual values.
- */
-
-import { Ledger, Witnesses } from "./managed/eclipseproof/contract/index.cjs";
+// This is how we type an empty object.
+import { Ledger} from "./managed/eclipseproof/contract/index.cjs";
 import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
-/* **********************************************************************
- * Private state for the Eclipse Proof contract contains the user's
- * secret key and private information needed for earnings verification.
- */
-
-export type EclipseProofPrivateState = {
-  readonly secretKey: Uint8Array;
-  readonly name?: string;          // User's full name
-  readonly dateOfBirth?: string;   // User's date of birth (YYYY-MM-DD format)
-  readonly netPay?: number;        // Net pay from payslip
-  readonly claimedEarnings?: number; // Amount user wants to prove
+const enum Sex {
+  MALE, // represented as 0 in compact enum types
+  FEMALE, // represented as 1 in compact enum types
+  UNSET // represented as 2 in compact enum types
+}
+export type eclipseProofPrivateState = {
+  secretKey: Uint8Array;
+  age: number;
+  net_pay: bigint;
+  gender: Sex;
+  country: string;
 };
-
-export const createEclipseProofPrivateState = (
-  secretKey: Uint8Array,
-  name?: string,
-  dateOfBirth?: string,
-  netPay?: number,
-  claimedEarnings?: number
-): EclipseProofPrivateState => ({
+export const createeclipseProofPrivateState = (secretKey: Uint8Array, age: number, net_pay: bigint, gender: Sex, country: string) => ({
   secretKey,
-  name,
-  dateOfBirth,
-  netPay,
-  claimedEarnings,
+  age,
+  net_pay,
+  gender,
+  country
 });
 
-/** ===================== *
- *  Helper Functions      *
- *  ===================== */
-
 function hexToBytes32(hex: string): Uint8Array {
-  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
-  if (clean.length !== 64) throw new Error("Expected 32 bytes (64 hex chars)");
-  const out = new Uint8Array(32);
+  if (typeof hex !== 'string') {
+    throw new TypeError("Input must be a string");
+  }
+  
+  const cleanHex = hex.startsWith("0x") ? hex.slice(2) : hex;
+  
+  if (cleanHex.length !== 64) {
+    throw new Error(`Expected 64 hex characters, got ${cleanHex.length}`);
+  }
+  
+  if (!/^[0-9a-fA-F]+$/.test(cleanHex)) {
+    throw new Error("Input contains invalid hex characters");
+  }
+  
+  const result = new Uint8Array(32);
   for (let i = 0; i < 32; i++) {
-    out[i] = parseInt(clean.slice(2 * i, 2 * i + 2), 16);
-  }
-  return out;
-}
-
-function stringToBytes32(str: string): Uint8Array {
-  const encoder = new TextEncoder();
-  const encoded = encoder.encode(str);
-  const out = new Uint8Array(32);
-  
-  // Copy the string bytes, truncate if too long, pad with zeros if too short
-  const copyLength = Math.min(encoded.length, 32);
-  out.set(encoded.slice(0, copyLength));
-  
-  return out;
-}
-
-function uint64ToBytes32(n: number): Uint8Array {
-  if (!Number.isInteger(n) || n < 0 || n > Number.MAX_SAFE_INTEGER) {
-    throw new Error("Number out of safe uint64 range");
+    const byteHex = cleanHex.slice(i * 2, i * 2 + 2);
+    result[i] = parseInt(byteHex, 16);
   }
   
-  const out = new Uint8Array(32);
-  // Store as little-endian in first 8 bytes
+  return result;
+}
+
+function u16ToBytes32LE(value: number): Uint8Array {
+  if (!Number.isInteger(value)) {
+    throw new TypeError("Value must be an integer");
+  }
+  
+  const MIN_U16 = 0;
+  const MAX_U16 = 65535; // 0xFFFF
+  
+  if (value < MIN_U16 || value > MAX_U16) {
+    throw new Error(`Value must be between ${MIN_U16} and ${MAX_U16}`);
+  }
+  
+  const result = new Uint8Array(32); // All bytes default to 0
+  result[0] = value & 0xFF;         // Little-endian: least significant byte first
+  result[1] = (value >>> 8) & 0xFF; // Use >>> for unsigned right shift
+  
+  return result;
+}
+// Converts a payment amount to a 32-byte little-endian representation.
+// Assumes the amount is in the smallest unit (like satoshis for BTC).
+// assetDecimals defines how many decimal places the asset uses (e.g., 8 for BTC).
+function paymentToBytes32LE(amount: number | bigint, assetDecimals: number = 8): Uint8Array {
+  let value: bigint;
+  
+  if (typeof amount === 'number') {
+    const factor = 10 ** assetDecimals;
+    value = BigInt(Math.round(amount * factor));
+  } else {
+    value = amount;
+  }
+  
+  if (value < 0n || value > 0xFFFFFFFFFFFFFFFFn) {
+    throw new Error("Payment amount out of range");
+  }
+  
+  const result = new Uint8Array(32);
   for (let i = 0; i < 8; i++) {
-    out[i] = (n >> (i * 8)) & 0xff;
+    result[i] = Number((value >> BigInt(i * 8)) & 0xFFn);
   }
-  return out;
+  return result;
 }
 
-/** ===================== *
- *  Test/Default Values   *
- *  ===================== */
+// For country names instead of codes
+function countryNameToBytes32(country: string): Uint8Array {
+  const normalized = country.toLowerCase().trim();
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(normalized);
+  const result = new Uint8Array(32);
+  result.set(encoded);
+  return result;
+}
 
-// Default test values - in production these would come from user input
-const DEFAULT_USER_SK_HEX = "7f3a5b2c8d9e1f4a6b7c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b";
-const DEFAULT_NAME = "John Doe";
-const DEFAULT_DOB = "1990-01-15";
-const DEFAULT_NET_PAY = 5000; // $5000 monthly net pay
-const DEFAULT_CLAIMED_EARNINGS = 4500; // Claiming $4500
+function wordToBytesWithLength(word: string, maxLength: number = 30): Uint8Array {
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(word);
+  
+  if (encoded.length > maxLength) {
+    throw new Error(`Word too long: ${encoded.length} bytes (max ${maxLength})`);
+  }
+  
+  const result = new Uint8Array(32);
+  result[0] = encoded.length; // First byte = length
+  result.set(encoded, 1);     // Data starts at byte 1
+  return result;
+}
 
-/** ===================== *
- *  Witness Functions     *
- *  ===================== */
-
-export const witnesses: Witnesses<EclipseProofPrivateState> = {
-  // User's secret key for generating public key
-  userSecretKey: (
-    ctx: WitnessContext<Ledger, EclipseProofPrivateState>
-  ): [EclipseProofPrivateState, Uint8Array] => [
-    ctx.privateState,
-    ctx.privateState.secretKey || hexToBytes32(DEFAULT_USER_SK_HEX)
-  ],
-
-  // User's name (padded to 32 bytes)
-  userName: (
-    ctx: WitnessContext<Ledger, EclipseProofPrivateState>
-  ): [EclipseProofPrivateState, Uint8Array] => [
-    ctx.privateState,
-    stringToBytes32(ctx.privateState.name || DEFAULT_NAME)
-  ],
-
-  // User's date of birth (padded to 32 bytes)
-  userDateOfBirth: (
-    ctx: WitnessContext<Ledger, EclipseProofPrivateState>
-  ): [EclipseProofPrivateState, Uint8Array] => [
-    ctx.privateState,
-    stringToBytes32(ctx.privateState.dateOfBirth || DEFAULT_DOB)
-  ],
-
-  // Net pay from payslip (as Uint64)
-  netPayFromPayslip: (
-    ctx: WitnessContext<Ledger, EclipseProofPrivateState>
-  ): [EclipseProofPrivateState, bigint] => [
-    ctx.privateState,
-    BigInt(ctx.privateState.netPay || DEFAULT_NET_PAY)
-  ],
-
-  // Amount user claims as earnings (as Uint64)
-  claimedEarnings: (
-    ctx: WitnessContext<Ledger, EclipseProofPrivateState>
-  ): [EclipseProofPrivateState, bigint] => [
-    ctx.privateState,
-    BigInt(ctx.privateState.claimedEarnings || DEFAULT_CLAIMED_EARNINGS)
-  ],
+export const witnesses = {
+  userSecretKey: ({
+    privateState,
+  }: WitnessContext<Ledger, eclipseProofPrivateState>): [
+    eclipseProofPrivateState,
+    Uint8Array,
+  ] => [privateState, hexToBytes32(Buffer.from(privateState.secretKey).toString('hex'))],
+  userAgeBytes: ({
+    privateState,
+  }: WitnessContext<Ledger, eclipseProofPrivateState>): [
+    eclipseProofPrivateState,
+    Uint8Array,
+  ] => [privateState, u16ToBytes32LE(privateState.age)],
+  userCountryAlpha2: ({
+    privateState,
+  }: WitnessContext<Ledger, eclipseProofPrivateState>): [
+    eclipseProofPrivateState,
+    Uint8Array,
+  ] => [privateState, countryNameToBytes32(privateState.country)],
+  userNetPay: ({
+    privateState,
+  }: WitnessContext<Ledger, eclipseProofPrivateState>): [
+    eclipseProofPrivateState,
+    Uint8Array,
+  ] => [privateState, paymentToBytes32LE(privateState.net_pay, 8)],
+  userGender: ({
+    privateState,
+  }: WitnessContext<Ledger, eclipseProofPrivateState>): [
+    eclipseProofPrivateState,
+    Sex,
+  ] => [privateState, privateState.gender],
 };
-
-/** ===================== *
- *  Utility Functions     *
- *  ===================== */
-
-// Create a user hash from name and DOB (for external use)
-export function createUserHashFromStrings(name: string, dob: string): Uint8Array {
-  const nameBytes = stringToBytes32(name);
-  const dobBytes = stringToBytes32(dob);
-  
-  // Simple hash - in production you'd use a proper cryptographic hash
-  const combined = new Uint8Array(64);
-  combined.set(nameBytes, 0);
-  combined.set(dobBytes, 32);
-  
-  // For now, return first 32 bytes - in production use proper hash function
-  return combined.slice(0, 32);
-}
-
-// Validate earnings data
-export function validateEarningsData(netPay: number, claimedEarnings: number): boolean {
-  return (
-    netPay > 0 &&
-    claimedEarnings > 0 &&
-    claimedEarnings <= netPay &&
-    Number.isInteger(netPay) &&
-    Number.isInteger(claimedEarnings)
-  );
-}

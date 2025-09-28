@@ -1,11 +1,38 @@
 # 🔐 EclipseProof - Integrated Full Stack Application
 
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Node.js](https://img.shields.io/badge/node-%3E%3D18-blue.svg)
+![Hackathon](https://img.shields.io/badge/MLH-Midnight%20Hackathon%202025-purple.svg)
+
 > 🏆 **Built for MLH Midnight Hackathon 2025**
 
 **Privacy-Preserving Income Verification Using Zero-Knowledge Proofs**
 
 EclipseProof revolutionizes income verification by allowing individuals to prove they meet income requirements without revealing their exact salary, employer details, or other sensitive financial information.
+---
 
+## 📑 Table of Contents
+
+- [🏗️ Architecture](#️-architecture)
+- [🚀 Quick Start](#-quick-start)
+- [🙏 Acknowledgments](#-acknowledgments)
+- [🌟 The Problem We Solve](#-the-problem-we-solve)
+- [🎯 How It Works](#-how-it-works)
+- [✨ Features](#-features)
+- [🛠️ Technology Stack](#️-technology-stack)
+- [📦 Installation & Setup](#-installation--setup)
+- [🔑 Midnight Lace Wallet Setup](#-midnight-lace-wallet-setup)
+- [🎮 Usage Guide](#-usage-guide)
+- [🔒 Privacy & Security](#-privacy--security)
+- [🎯 Use Cases](#-use-cases)
+- [📸 Demo](#-demo)
+- [🔮 Future Roadmap](#-future-roadmap)
+- [🔧 Development](#-development)
+- [🤝 Contributing](#-contributing)
+- [⚠️ Disclaimer](#️-disclaimer)
+- [📄 License](#-license)
+
+---
 ## 🏗️ Architecture
 
 This integrated application consists of:
@@ -72,6 +99,7 @@ This integrated application consists of:
 - 🔍 **Privacy Invasion**: Verifiers see exact salaries, employer names, and personal data
 - � **Security Risk**: Sensitive documents can be misused or data breached
 - ⏱️ **Manual Process**: Time-consuming document review and verification
+-    **Anonymity**: Users can share their data without disclosing who they are for example proving you meet a certain criteria without disclosing it
 
 ### EclipseProof Solution:
 

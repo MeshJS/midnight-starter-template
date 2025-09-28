@@ -1,286 +1,365 @@
+// This file is part of midnightntwrk/example-counter.
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // You may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
 // http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-// Eclipse Proof: Zero-Knowledge Earnings Verification Contract
-pragma language_version 0.17;
+pragma language_version >= 0.16 && <= 0.17;
+
 
 import CompactStandardLibrary;
 import "./modules/Ownable" prefix Ownable_;
 
+
+// (Optional: re-export for TS tests)
+// export { ZswapCoinPublicKey, ContractAddress, Either };
+
+
+
+
 // =====================
 // ====== Types ========
 // =====================
+export struct Attestation {
+ epoch: Uint<64>;
+ adult: Uint<1>;       // 1 if meets legal age
+ inCountry: Uint<1>;   // 1 if belongs to the allowed country (e.g., "AR")
+ net_pay: Uint<1>; // 1 if net pay is above threshold
+ gender: Uint<1>;  // 1 if the gender is according to policy
 
-export struct EarningsProof {
-    epoch: Uint<64>;          // Version/timestamp of the proof
-    userHash: Bytes<32>;      // Hash of (name + DOB) for user identification
-    claimedAmount: Uint<64>;  // Amount user claims to earn
-    verified: Uint<1>;        // 1 if earnings are verified, 0 otherwise
-    timestamp: Uint<64>;      // When the proof was created
 }
 
-export struct VerificationRequest {
-    userHash: Bytes<32>;      // Hash of (name + DOB) to identify user
-    requiredAmount: Uint<64>; // Minimum earnings amount to verify
-    requesterId: Bytes<32>;   // Public key of the verifier making the request
+export enum Gender {
+ MALE,
+ FEMALE,
+ UNSET
 }
-
 // =====================
 // ====== Ledger =======
 // =====================
-
 export ledger epoch: Counter;
 export ledger instance: Counter;
+export ledger attest: Map<Bytes<32>, Attestation>;
 
-// Map from user public key to their earnings proof
-export ledger earningsProofs: Map<Bytes<32>, EarningsProof>;
 
-// Map from request ID to verification requests
-export ledger verificationRequests: Map<Bytes<32>, VerificationRequest>;
+// Public policy: allowed country (ISO alpha-2, 2 bytes). If "\x00\x00", it's unset.
+// Minimum allowed age (in years). If 0, it's unset.
+// Allowed country and age are set by the contract owner (governance).
+// Allows to version policies by bumping the epoch.
+// Users can enroll once, and then upgrade their adult flag or refresh their country flag.
+export ledger allowedCountry: Bytes<32>; // name as Bytes<32> for simplicity
+export ledger allowedMinAge: Uint<32>; // in years
+export ledger allowedNetPay: Uint<32>; // in thousands of USD
+export ledger allowedGender: Gender; // e.g., "FEMALE"
 
-// Minimum net pay threshold (can be updated by owner)
-export ledger minNetPayThreshold: Uint<64>;
+
+
 
 // =====================
 // ===== Witnesses =====
 // =====================
-
 witness userSecretKey(): Bytes<32>;
-witness userName(): Bytes<32>;           // User's name (padded to 32 bytes)
-witness userDateOfBirth(): Bytes<32>;    // User's DOB (padded to 32 bytes)
-witness netPayFromPayslip(): Uint<64>;   // Net pay amount from payslip
-witness claimedEarnings(): Uint<64>;     // Amount user wants to prove as earnings
+witness userAgeBytes(): Bytes<32>;
+witness userCountryAlpha2(): Bytes<32>;   // e.g., "United states of america" as Bytes<32>
+witness userNetPay(): Bytes<32>; // in thousands of USD
+witness userGender(): Gender;  //
+
+
+
 
 // ==========================
 // ====== Constructor =======
 // ==========================
-
 constructor(initialOwner: Either<ZswapCoinPublicKey, ContractAddress>) {
-    instance.increment(1 as Uint<16>);
-    epoch.increment(1 as Uint<16>);
-    Ownable_initialize(initialOwner);
+ instance.increment(1 as Uint<16>);
+ epoch.increment(1 as Uint<16>);
+ Ownable_initialize(initialOwner);
 
-    // Default minimum net pay threshold (can be adjusted)
-    minNetPayThreshold = disclose(1000 as Uint<64>);
+
+ // Defaults on deploy:
+ allowedCountry = disclose(pad(32, "United states of america") as Bytes<32>);
+ allowedMinAge  = disclose(21 as Uint<8>); // 21 years
+ allowedNetPay  = disclose(3 as Uint<8>);  // 3k USD
+ allowedGender  = disclose(Gender.FEMALE);  // FEMALE
 }
+
+
+
 
 // =====================
 // ===== Helpers =======
 // =====================
-
 export pure circuit publicKey(inst: Bytes<32>, sk: Bytes<32>): Bytes<32> {
-    return persistentHash<Vector<3, Bytes<32>>>([pad(32, "eclipse:pk"), inst, sk]);
+ return persistentHash<Vector<3, Bytes<32>>>([pad(32, "eclipse_proof:pk"), inst, sk]);
+}
+circuit userUPk(): Bytes<32> {
+ const instB = (instance as Field) as Bytes<32>;
+ return publicKey(instB, userSecretKey());
 }
 
-circuit userPublicKey(): Bytes<32> {
-    const instB = (instance as Field) as Bytes<32>;
-    return publicKey(instB, userSecretKey());
-}
 
-// Create a hash from name and DOB for user identification
-export pure circuit createUserHash(name: Bytes<32>, dob: Bytes<32>): Bytes<32> {
-    return persistentHash<Vector<3, Bytes<32>>>([pad(32, "eclipse:user"), name, dob]);
-}
 
-circuit getUserHash(): Bytes<32> {
-    return createUserHash(userName(), userDateOfBirth());
-}
-
-// Get current timestamp (simplified - in real implementation would use block timestamp)
-circuit getCurrentTimestamp(): Uint<64> {
-    return (epoch as Field) as Uint<64>;
-}
 
 // ===============================
-// ===== Admin Functions ========
+// ===== Admin (governance) ======
 // ===============================
-
 export circuit bumpEpoch(): [] {
-    Ownable_assertOnlyOwner();
-    epoch.increment(1 as Uint<16>);
+ Ownable_assertOnlyOwner();
+ epoch.increment(1 as Uint<16>);
 }
 
-export circuit setMinNetPayThreshold(threshold: Uint<64>): [] {
-    Ownable_assertOnlyOwner();
-    assert(threshold > (0 as Uint<64>), "threshold must be > 0");
-    minNetPayThreshold = disclose(threshold);
+
+export circuit revokeUpk(uPk: Bytes<32>): [] {
+ Ownable_assertOnlyOwner();
+ assert(attest.member(disclose(uPk)), "no record");
+ attest.remove(disclose(uPk));
 }
 
-export circuit revokeEarningsProof(userPk: Bytes<32>): [] {
-    Ownable_assertOnlyOwner();
-    assert(earningsProofs.member(disclose(userPk)), "no proof found");
-    earningsProofs.remove(disclose(userPk));
+
+export circuit setAdultFlag(uPk: Bytes<32>, v: Uint<1>): [] {
+ Ownable_assertOnlyOwner();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: cur.epoch, adult: v, inCountry: cur.inCountry, net_pay: cur.net_pay, gender: cur.gender
+ }));
 }
 
-// ===================================
-// ===== User Enrollment/Proofs =====
-// ===================================
 
-export circuit enrollAndProveEarnings(): [] {
-    const userPk = userPublicKey();
-    assert(!earningsProofs.member(disclose(userPk)), "already enrolled");
-
-    // Verify that net pay from payslip meets minimum threshold
-    assert(netPayFromPayslip() >= minNetPayThreshold, "net pay below threshold");
-
-    // Verify that claimed earnings don't exceed net pay (anti-fraud)
-    assert(claimedEarnings() <= netPayFromPayslip(), "claimed earnings exceed net pay");
-
-    // Create user hash from name and DOB
-    const userHash = getUserHash();
-    const timestamp = getCurrentTimestamp();
-    const currentEpoch = (epoch as Field) as Uint<64>;
-
-    // Create and store the earnings proof
-    earningsProofs.insert(disclose(userPk), disclose(EarningsProof {
-        epoch: currentEpoch,
-        userHash: userHash,
-        claimedAmount: claimedEarnings(),
-        verified: 1 as Uint<1>,
-        timestamp: timestamp
-    }));
+export circuit setCountryFlag(uPk: Bytes<32>, v: Uint<1>): [] {
+ Ownable_assertOnlyOwner();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: cur.epoch, adult: cur.adult, inCountry: v, net_pay: cur.net_pay, gender: cur.gender
+ }));
 }
 
-export circuit updateEarningsProof(): [] {
-    const userPk = userPublicKey();
-    assert(earningsProofs.member(disclose(userPk)), "not enrolled");
-
-    // Verify that net pay from new payslip meets minimum threshold
-    assert(netPayFromPayslip() >= minNetPayThreshold, "net pay below threshold");
-
-    // Verify that claimed earnings don't exceed net pay
-    assert(claimedEarnings() <= netPayFromPayslip(), "claimed earnings exceed net pay");
-
-    const userHash = getUserHash();
-    const timestamp = getCurrentTimestamp();
-    const currentEpoch = (epoch as Field) as Uint<64>;
-
-    // Update the earnings proof
-    earningsProofs.insert(disclose(userPk), disclose(EarningsProof {
-        epoch: currentEpoch,
-        userHash: userHash,
-        claimedAmount: claimedEarnings(),
-        verified: 1 as Uint<1>,
-        timestamp: timestamp
-    }));
+export circuit setNetPayFlag(uPk: Bytes<32>, v: Uint<1>): [] {
+ Ownable_assertOnlyOwner();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: cur.epoch, adult: cur.adult, inCountry: cur.inCountry, net_pay: v, gender: cur.gender
+ }));
 }
 
-// ===================================
-// ===== Verification Functions =====
-// ===================================
-
-export circuit createVerificationRequest(
-    targetUserHash: Bytes<32>,
-    requiredAmount: Uint<64>
-): Bytes<32> {
-    const requesterId = userPublicKey();
-    
-    // Create unique request ID
-    const requestId = persistentHash<Vector<4, Bytes<32>>>([
-        pad(32, "eclipse:req"),
-        targetUserHash,
-        requesterId,
-        (requiredAmount as Field) as Bytes<32>
-    ]);
-
-    // Store the verification request
-    verificationRequests.insert(disclose(requestId), disclose(VerificationRequest {
-        userHash: targetUserHash,
-        requiredAmount: requiredAmount,
-        requesterId: requesterId
-    }));
-
-    return disclose(requestId);
+export circuit setGenderFlag(uPk: Bytes<32>, v: Uint<1>): [] {
+ Ownable_assertOnlyOwner();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: cur.epoch, adult: cur.adult, inCountry: cur.inCountry, net_pay: cur.net_pay, gender: v
+ }));
 }
 
-export circuit verifyEarningsByHash(
-    targetUserHash: Bytes<32>,
-    requiredAmount: Uint<64>
-): Uint<1> {
-    // Find the user's proof by searching through all proofs
-    // Note: In a real implementation, you might want a more efficient lookup
-    
-    // For now, we'll assume the verifier knows the user's public key
-    // This would typically be provided through an off-chain lookup or registry
-    
-    // This is a simplified version - in practice you'd need additional infrastructure
-    // to map user hashes to public keys efficiently
-    
-    return disclose(0 as Uint<1>); // Placeholder - needs user PK to lookup proof
+export circuit setAllowedMinAge(age: Uint<8>): [] {
+ Ownable_assertOnlyOwner();
+ assert(age > (0 as Uint<8>), "age must be > 0");
+ allowedMinAge = disclose(age);
 }
 
-export circuit verifyEarningsByUserPk(
-    userPk: Bytes<32>,
-    expectedUserHash: Bytes<32>,
-    requiredAmount: Uint<64>
-): Uint<1> {
-    assert(earningsProofs.member(disclose(userPk)), "no proof found");
-    
-    const proof = earningsProofs.lookup(disclose(userPk));
-    
-    // Verify the user hash matches
-    assert(proof.userHash == expectedUserHash, "user hash mismatch");
-    
-    // Check if the user meets the required earnings amount
-    const meetsRequirement = (proof.claimedAmount >= requiredAmount && proof.verified == (1 as Uint<1>))
-        ? (1 as Uint<1>) : (0 as Uint<1>);
-    
-    return disclose(meetsRequirement);
+
+export circuit setAllowedCountry(country: Bytes<32>): [] {
+ Ownable_assertOnlyOwner();
+ allowedCountry = disclose(country);
+ // optional: version policies
+ epoch.increment(1 as Uint<16>);
 }
+
+export circuit setAllowedNetPay(net_pay: Uint<8>): [] {
+ Ownable_assertOnlyOwner();
+ assert(net_pay > (0 as Uint<8>), "net pay must be > 0");
+ allowedNetPay = disclose(net_pay);
+}
+
+export circuit setAllowedGender(gender: Gender): [] {
+ Ownable_assertOnlyOwner();
+ allowedGender = disclose(gender);
+}
+
 
 // ===========================
-// ===== Query Functions ====
+// ===== Reads / Utils =======
 // ===========================
+export circuit getEpoch(): Uint<64> { return (epoch as Field) as Uint<64>; }
+export circuit getInstanceBytes(): Bytes<32> { return (instance as Field) as Bytes<32>; }
+export circuit getAllowedCountry(): Bytes<32> { return allowedCountry; }
+export circuit getAllowedMinAge(): Uint<32> { return allowedMinAge; }
+export circuit getAllowedNetPay(): Uint<32> { return allowedNetPay; }
+export circuit getAllowedGender(): Gender { return allowedGender; }
 
-export circuit getEpoch(): Uint<64> {
-    return (epoch as Field) as Uint<64>;
+
+
+
+// ===================================
+// ===== Enroll / Upgrade / Refresh ===
+// ===================================
+export circuit enrollOnce(): [] {
+ // Policies must be set
+ assert(!(allowedCountry == pad(32, "")), "country policy unset");
+ assert(allowedMinAge > (0 as Uint<8>), "age policy unset");
+ assert(allowedNetPay > (0 as Uint<8>), "net pay policy unset"); 
+ assert(!(allowedGender == Gender.UNSET)," gender policy unset");
+
+
+ const uPk = userUPk();
+ assert(!attest.member(disclose(uPk)), "already enrolled");
+
+
+ // Adult flag according to on-chain policy
+ const age8 = ((userAgeBytes() as Field) as Uint<16>) as Uint<8>;
+ const adultBit = (age8 >= allowedMinAge) ? (1 as Uint<1>) : (0 as Uint<1>);
+
+
+ // Country flag according to on-chain policy
+ const inCountryBit = (userCountryAlpha2() == allowedCountry)
+   ? (1 as Uint<1>) : (0 as Uint<1>);
+ // Net pay flag according to on-chain policy
+ const netPay8 = ((userNetPay() as Field) as Uint<16>) as Uint<8>;
+ const netPayBit = (netPay8 >= allowedNetPay) ? (1 as Uint<1>) : (0 as Uint<1>);
+ // Update gender flag according to on-chain policy
+ const genderBit = (userGender() == allowedGender) ? (1 as Uint<1>) : (0 as Uint<1>);
+
+ const e = (epoch as Field) as Uint<64>;
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: e, adult: adultBit, inCountry: inCountryBit, net_pay: netPayBit, gender: genderBit
+ }));
 }
 
-export circuit getInstanceBytes(): Bytes<32> {
-    return (instance as Field) as Bytes<32>;
+
+export circuit selfUpgradeToAdult(): [] {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+ assert(cur.adult == (0 as Uint<1>), "already adult"); // check if upgrade needed or logic error
+ // Policy must be set
+
+
+ assert(allowedMinAge > (0 as Uint<8>), "age policy unset");
+ const age8 = ((userAgeBytes() as Field) as Uint<16>) as Uint<8>;
+ assert(age8 >= allowedMinAge, "age policy failed");
+
+
+ const e = (epoch as Field) as Uint<64>;
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: e, adult: 1 as Uint<1>, inCountry: cur.inCountry, net_pay: cur.net_pay, gender: cur.gender
+ }));
 }
 
-export circuit getMinNetPayThreshold(): Uint<64> {
-    return minNetPayThreshold;
+
+// Recompute only the country flag with the current witness (e.g., residency/policy changes)
+export circuit selfRefreshCountry(): [] {
+ assert(!(allowedCountry == pad(32, "")), "country policy unset");
+
+
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ const cur = attest.lookup(disclose(uPk));
+
+
+ const isIn = userCountryAlpha2() == allowedCountry;
+ const inCountryBit = isIn ? (1 as Uint<1>) : (0 as Uint<1>);
+ const e = (epoch as Field) as Uint<64>;
+
+
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: e, adult: cur.adult, inCountry: inCountryBit, net_pay: cur.net_pay, gender: cur.gender
+ }));
 }
 
-export circuit getMyEarningsProof(): EarningsProof {
-    const userPk = userPublicKey();
-    assert(earningsProofs.member(disclose(userPk)), "no proof found");
-    return disclose(earningsProofs.lookup(disclose(userPk)));
+
+
+
+// ===========================
+// ========= Queries =========
+// ===========================
+export circuit checkAdultByUpk(uPk: Bytes<32>): Uint<1> {
+ assert(attest.member(disclose(uPk)), "no record");
+ return attest.lookup(disclose(uPk)).adult;
 }
 
-export circuit getEarningsProofByPk(userPk: Bytes<32>): EarningsProof {
-    assert(earningsProofs.member(disclose(userPk)), "no proof found");
-    return earningsProofs.lookup(disclose(userPk));
+
+export circuit checkCountryByUpk(uPk: Bytes<32>): Uint<1> {
+ assert(attest.member(disclose(uPk)), "no record");
+ return attest.lookup(disclose(uPk)).inCountry;
 }
 
-export circuit checkEarningsThreshold(userPk: Bytes<32>, threshold: Uint<64>): Uint<1> {
-    assert(earningsProofs.member(disclose(userPk)), "no proof found");
-    const proof = earningsProofs.lookup(disclose(userPk));
-    
-    const meetsThreshold = (proof.claimedAmount >= threshold && proof.verified == (1 as Uint<1>))
-        ? (1 as Uint<1>) : (0 as Uint<1>);
-    
-    return meetsThreshold;
+export circuit checkNetPayByUpk(uPk: Bytes<32>): Uint<1> {
+ assert(attest.member(disclose(uPk)), "no record");
+ return attest.lookup(disclose(uPk)).net_pay;
 }
+
+
+export circuit checkGenderByUpk(uPk: Bytes<32>): Uint<1> {
+ assert(attest.member(disclose(uPk)), "no record");
+ return attest.lookup(disclose(uPk)).gender;
+}
+
+export circuit checkEligibleByUpk(uPk: Bytes<32>): Uint<1> {
+ assert(attest.member(disclose(uPk)), "no record");
+ const a = attest.lookup(disclose(uPk));
+ const ok = (a.adult == (1 as Uint<1>) && a.inCountry == (1 as Uint<1>) && a.net_pay == (1 as Uint<1>) && a.gender == (1 as Uint<1>))
+   ? (1 as Uint<1>) : (0 as Uint<1>);
+ return ok;
+}
+
+
+export circuit checkAdultSelf(): Uint<1> {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ return disclose(attest.lookup(disclose(uPk)).adult);
+}
+
+
+export circuit checkCountrySelf(): Uint<1> {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ return disclose(attest.lookup(disclose(uPk)).inCountry);
+}
+
+export circuit checkNetPaySelf(): Uint<1> {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ return disclose(attest.lookup(disclose(uPk)).net_pay);
+}
+
+export circuit checkGenderSelf(): Uint<1> {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ return disclose(attest.lookup(disclose(uPk)).gender);
+}
+
+export circuit checkEligibleSelf(): Uint<1> {
+ const uPk = userUPk();
+ assert(attest.member(disclose(uPk)), "no record");
+ const a = attest.lookup(disclose(uPk));
+ const ok = (a.adult == (1 as Uint<1>) && a.inCountry == (1 as Uint<1>) && a.net_pay == (1 as Uint<1>) && a.gender == (1 as Uint<1>))
+   ? (1 as Uint<1>) : (0 as Uint<1>);
+ return disclose(ok);
+}
+
+
+
 
 // ===============================
-// ===== Ownable Functions ======
+// ===== Ownable (helpers) =======
 // ===============================
-
 export circuit owner(): Either<ZswapCoinPublicKey, ContractAddress> {
-    return Ownable_owner();
+ return Ownable_owner();
 }
-
 export circuit transferOwnership(newOwner: Either<ZswapCoinPublicKey, ContractAddress>): [] {
-    Ownable_transferOwnership(newOwner);
+ Ownable_transferOwnership(newOwner);
 }
-
 export circuit renounceOwnership(): [] {
-    Ownable_renounceOwnership();
+ Ownable_renounceOwnership();
 }

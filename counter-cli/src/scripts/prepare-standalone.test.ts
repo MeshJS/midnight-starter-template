@@ -12,7 +12,7 @@ import { createLogger } from '../logger-utils';
 
 // Update this wallet address with your own undeployed-network wallet
 const my_own_wallet =
-  'mn_shield-addr_undeployed1pldqkwy77d0cw0yspkqxv8urkxhtlm3p9w3aq500wuqhaagaljnsxq93lz69qpm6erjvk7wgun3crpf999wcukywuk5c5ch7jpaf62dm7v4tuepw';
+  'mn_shield-addr_undeployed1pldqkwy77d0cw0yspkqxv8urkxhtlm3p9w3aq500wuqhaagaljnmr7952qrh4j8yeduu3e8rsxzj222a3evgaedf3f30ayr6n55mhucxgf7wn';
 const logDir = path.resolve(currentDir, '..', 'logs', 'prepare-standalone', `${new Date().toISOString()}.log`);
 const logger = await createLogger(logDir);
 
@@ -62,7 +62,7 @@ describe('Prepare Standalone', () => {
   );
 
   it('Initialize standalone', async () => {
-    await sendNativeToken(my_own_wallet, 10000n * 1000000n);
+    // await sendNativeToken(my_own_wallet, 10000n * 1000000n);
     logger.info('funded');
   });
 });

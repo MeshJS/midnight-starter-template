@@ -115,7 +115,7 @@ export class TestEnvironment {
           'counter-proof-server',
           Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1),
         )
-        .withWaitStrategy('counter-indexer', Wait.forLogMessage(/starting indexing/, 1));
+        // .withWaitStrategy('counter-indexer', Wait.forLogMessage("starting indexing"));
       this.env = await this.dockerEnv.up();
 
       this.testConfig.dappConfig = {

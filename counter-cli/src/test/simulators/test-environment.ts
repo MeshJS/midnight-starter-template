@@ -14,11 +14,16 @@ import type { Logger } from 'pino';
 import type { Wallet } from '@midnight-ntwrk/wallet-api';
 import type { Resource } from '@midnight-ntwrk/wallet';
 import { expect } from 'vitest';
+import type { WalletContext } from '../../api';
 
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
+// Test mnemonic - DO NOT use in production
+const TEST_MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+
 export interface TestConfiguration {
   seed: string;
+  mnemonic: string;
   entrypoint: string;
   dappConfig: Config;
   psMode: string;
@@ -27,6 +32,7 @@ export interface TestConfiguration {
 
 export class LocalTestConfig implements TestConfiguration {
   seed = GENESIS_MINT_WALLET_SEED;
+  mnemonic = TEST_MNEMONIC;
   entrypoint = 'dist/standalone.js';
   psMode = 'undeployed';
   cacheFileName = '';
@@ -44,12 +50,17 @@ export function parseArgs(required: string[]): TestConfiguration {
   }
 
   let seed = '';
+  let mnemonic = TEST_MNEMONIC;
   if (required.includes('seed')) {
     if (process.env.TEST_WALLET_SEED !== undefined) {
       seed = process.env.TEST_WALLET_SEED;
     } else {
       throw new Error('TEST_WALLET_SEED environment variable is not defined.');
     }
+  }
+
+   if (process.env.TEST_WALLET_MNEMONIC !== undefined) {
+    mnemonic = process.env.TEST_WALLET_MNEMONIC;
   }
 
   let cfg: Config = new TestnetRemoteConfig();
@@ -63,7 +74,7 @@ export function parseArgs(required: string[]): TestConfiguration {
       throw new Error('TEST_ENV environment variable is not defined.');
     }
     switch (env) {
-      case 'testnet':
+      case 'preview':
         cfg = new TestnetRemoteConfig();
         psMode = 'testnet';
         cacheFileName = `${seed.substring(0, 7)}-${psMode}.state`;
@@ -75,6 +86,7 @@ export function parseArgs(required: string[]): TestConfiguration {
 
   return {
     seed,
+    mnemonic,
     entrypoint: entry,
     dappConfig: cfg,
     psMode,
@@ -87,7 +99,7 @@ export class TestEnvironment {
   private env: StartedDockerComposeEnvironment | undefined;
   private dockerEnv: DockerComposeEnvironment | undefined;
   private container: StartedTestContainer | undefined;
-  private wallet: (Wallet & Resource) | undefined;
+  private walletContext: WalletContext | undefined;
   private testConfig: TestConfiguration;
 
   constructor(logger: Logger) {
@@ -114,8 +126,9 @@ export class TestEnvironment {
         .withWaitStrategy(
           'counter-proof-server',
           Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1),
+
         )
-        // .withWaitStrategy('counter-indexer', Wait.forLogMessage("starting indexing"));
+        .withWaitStrategy('counter-indexer', Wait.forLogMessage(/starting indexing/, 1));
       this.env = await this.dockerEnv.up();
 
       this.testConfig.dappConfig = {
@@ -145,7 +158,7 @@ export class TestEnvironment {
   };
 
   static getProofServerContainer = async (env: string) =>
-    await new GenericContainer('midnightnetwork/proof-server:4.0.0')
+    await new GenericContainer('midnightnetwork/proof-server:6.2.0-rc.2')
       .withExposedPorts(6300)
       .withCommand([`midnight-proof-server --network ${env}`])
       .withEnvironment({ RUST_BACKTRACE: 'full' })
@@ -153,8 +166,8 @@ export class TestEnvironment {
       .start();
 
   shutdown = async () => {
-    if (this.wallet !== undefined) {
-      await this.wallet.close();
+    if (this.walletContext !== undefined) {
+      await api.closeWallet(this.walletContext);
     }
     if (this.env !== undefined) {
       this.logger.info('Test containers closing');
@@ -175,11 +188,5 @@ export class TestEnvironment {
     );
     const state = await Rx.firstValueFrom(this.wallet.state());
     return this.wallet;
-  };
-
-  saveWalletCache = async () => {
-    if (this.wallet !== undefined) {
-      await api.saveState(this.wallet, this.testConfig.cacheFileName);
-    }
   };
 }

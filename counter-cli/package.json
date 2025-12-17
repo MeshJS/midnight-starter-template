@@ -26,12 +26,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "run-proof-server-testnet": "docker compose -f proof-server-testnet.yml up"    
   },
-  "dependencies": {
-    "@bitcoin-js/tiny-secp256k1-asmjs": "^2.2.4",
-    "@meshsdk/counter-contract": "*",
-    "@midnight-ntwrk/wallet-sdk-hd": "^2.0.0",
-    "bip32": "^5.0.0-rc.0",
-    "bip39": "^3.1.0",
-    "effect": "^3.16.16"
+  "dependencies": {    
+    "@meshsdk/counter-contract": "*"    
   }
 }

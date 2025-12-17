@@ -13,17 +13,7 @@ export interface Config {
   readonly indexerWS: string;
   readonly node: string;
   readonly proofServer: string;
-}
-
-export class TestnetLocalConfig implements Config {
-  logDir = path.resolve(currentDir, '..', 'logs', 'testnet-local', `${new Date().toISOString()}.log`);
-  indexer = 'http://127.0.0.1:8088/api/v1/graphql';
-  indexerWS = 'ws://127.0.0.1:8088/api/v1/graphql/ws';
-  node = 'http://127.0.0.1:9944';
-  proofServer = 'http://127.0.0.1:6300';
-  constructor() {
-    setNetworkId("testnet");
-  }
+  readonly networkId: string;
 }
 
 export class StandaloneConfig implements Config {
@@ -32,18 +22,17 @@ export class StandaloneConfig implements Config {
   indexerWS = 'ws://127.0.0.1:8088/api/v3/graphql/ws';
   node = 'http://127.0.0.1:9944';
   proofServer = 'http://127.0.0.1:6300';
-  constructor() {
-    setNetworkId("undeployed");
-  }
+  networkId = 'undeployed';
 }
 
-export class TestnetRemoteConfig implements Config {
-  logDir = path.resolve(currentDir, '..', 'logs', 'testnet-remote', `${new Date().toISOString()}.log`);
-  indexer = 'https://indexer.testnet-02.midnight.network/api/v1/graphql';
-  indexerWS = 'wss://indexer.testnet-02.midnight.network/api/v1/graphql/ws';
-  node = 'https://rpc.testnet-02.midnight.network';
+export class PreviewConfig implements Config {
+  logDir = path.resolve(currentDir, '..', 'logs', 'preview', `${new Date().toISOString()}.log`);
+  indexer = 'https://indexer.preview.midnight.network/api/v3/graphql';
+  indexerWS = 'wss://indexer.preview.midnight.network/api/v3/graphql/ws';
+  node = 'wss://rpc.preview.midnight.network';
   proofServer = 'http://127.0.0.1:6300';
-  constructor() {
-    setNetworkId("preview");
-  }
+ networkId = 'preview';
 }
+
+// Alias for backwards compatibility
+export class TestnetRemoteConfig extends PreviewConfig {}

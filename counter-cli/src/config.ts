@@ -28,10 +28,10 @@ export class StandaloneConfig implements Config {
 export class PreviewConfig implements Config {
   logDir = path.resolve(currentDir, '..', 'logs', 'preview', `${new Date().toISOString()}.log`);
   indexer = 'https://indexer.preview.midnight.network/api/v3/graphql';
-  indexerWS = 'ws://indexer.preview.midnight.network/api/v3/graphql/ws';
+  indexerWS = 'wss://indexer.preview.midnight.network/api/v3/graphql/ws';
   node = 'wss://rpc.preview.midnight.network';
   proofServer = 'http://127.0.0.1:6300';
- networkId = 'preview';
+  networkId = 'preview';
 }
 
 // Alias for backwards compatibility

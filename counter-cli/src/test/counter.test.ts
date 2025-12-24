@@ -3,7 +3,7 @@ import * as api from '../api';
 import { type CounterProviders } from '../common-types';
 import { currentDir } from '../config';
 import { createLogger } from '../logger';
-import { TestEnvironment } from './simulators/environment';
+import { TestEnvironment } from './simulators/simulator';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import 'dotenv/config';
 

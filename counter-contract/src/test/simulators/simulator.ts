@@ -2,7 +2,8 @@ import {
   type CircuitContext,
   QueryContext,
   sampleContractAddress,
-  constructorContext
+  createConstructorContext,
+  CostModel
 } from "@midnight-ntwrk/compact-runtime";
 import {
   Contract,
@@ -28,23 +29,23 @@ export class CounterSimulator {
     const {
       currentPrivateState,
       currentContractState,
-      currentZswapLocalState
+      currentZswapLocalState,
     } = this.contract.initialState(
-      constructorContext({ privateCounter: 0 }, "0".repeat(64))
+      createConstructorContext({ privateCounter: 0 }, "0".repeat(64))
     );
     this.circuitContext = {
       currentPrivateState,
-      currentZswapLocalState,
-      originalState: currentContractState,
-      transactionContext: new QueryContext(
+      currentZswapLocalState,  
+      currentQueryContext: new QueryContext(
         currentContractState.data,
         sampleContractAddress()
-      )
+      ),   
+      costModel: CostModel.initialCostModel(),
     };
   }
 
   public getLedger(): Ledger {
-    return ledger(this.circuitContext.transactionContext.state);
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 
   public getPrivateState(): CounterPrivateState {
@@ -59,16 +60,7 @@ export class CounterSimulator {
     logger.info({
       section: "Circuit Context",
       currentPrivateState: circuitResults.context.currentPrivateState,
-      currentZswapLocalState: circuitResults.context.currentZswapLocalState,
-      originalState: circuitResults.context.originalState,
-      transactionContext_address:
-        circuitResults.context.transactionContext.address,
-      transactionContext_block: circuitResults.context.transactionContext.block,
-      transactionContext_comIndicies:
-        circuitResults.context.transactionContext.comIndicies,
-      transactionContext_effects:
-        circuitResults.context.transactionContext.effects,
-      transactionContext_state: circuitResults.context.transactionContext.state
+      currentZswapLocalState: circuitResults.context.currentZswapLocalState,   
     });
     logger.info({
       section: "Circuit Proof Data",
@@ -83,6 +75,6 @@ export class CounterSimulator {
       result: circuitResults.result
     });
     this.circuitContext = circuitResults.context;
-    return ledger(this.circuitContext.transactionContext.state);
+    return ledger(this.circuitContext.currentQueryContext.state);
   }
 }

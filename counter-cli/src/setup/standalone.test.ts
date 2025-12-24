@@ -3,12 +3,12 @@ import * as api from '../api';
 import { type CounterProviders } from '../common-types';
 import { currentDir } from '../config';
 import { createLogger } from '../logger';
-import { TestEnvironment } from '../test/simulators/environment';
+import { TestEnvironment } from '../test/simulators/simulator';
 import { describe, it, beforeAll, afterAll } from 'vitest';
 import 'dotenv/config';
 import * as ledger from '@midnight-ntwrk/ledger-v6';
 
-const logDir = path.resolve(currentDir, '..', 'logs', 'prepare-standalone', `${new Date().toISOString()}.log`);
+const logDir = path.resolve(currentDir, '..', 'logs', 'setup-undeployed', `${new Date().toISOString()}.log`);
 const logger = await createLogger(logDir);
 
 async function sendNativeToken(wallet: api.WalletContext, address: string, amount: bigint): Promise<string> {
@@ -34,7 +34,7 @@ async function sendNativeToken(wallet: api.WalletContext, address: string, amoun
   const finalizedTx = await wallet.wallet.finalizeTransaction(transferRecipe);
 
   logger.info('Submitting dust registration transaction...');
-  const txId = await wallet.wallet.submitTransaction(finalizedTx);
+  const txId = await wallet.wallet.submitTransaction(transferRecipe);
   logger.info(`Dust registration submitted with tx id: ${txId}`);
 
   return txId;

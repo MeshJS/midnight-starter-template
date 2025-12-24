@@ -8,9 +8,9 @@ import {
   Contract,
   type Ledger,
   ledger
-} from "../../managed/counter/contract/index.cjs";
+} from "../../managed/counter/contract/index.js";
 import { type CounterPrivateState, witnesses } from "../../witnesses.js";
-import { createLogger } from "../../logger-utils.js";
+import { createLogger } from "../../logger.js";
 import { LogicTestingConfig } from "../../config.js";
 
 // This is over-kill for such a simple contract, but the same pattern can be used to test more

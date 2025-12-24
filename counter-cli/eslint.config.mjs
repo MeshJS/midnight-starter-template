@@ -41,7 +41,7 @@ export default [
       prettier: pluginPrettier,
     },
     rules: {
-      'prettier/prettier': 'error',
+      'prettier/prettier': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/promise-function-async': 'off',

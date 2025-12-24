@@ -1,4 +1,4 @@
-import { type Config, StandaloneConfig, currentDir, TestnetRemoteConfig } from '../../config';
+import { type Config, UndeployedConfig, currentDir, PreviewConfig } from '../../config';
 import {
   DockerComposeEnvironment,
   GenericContainer,
@@ -8,13 +8,11 @@ import {
 } from 'testcontainers';
 import path from 'path';
 import * as api from '../../api';
-import * as Rx from 'rxjs';
-import { nativeToken } from '@midnight-ntwrk/ledger';
-import type { Logger } from 'pino';
-import type { Wallet } from '@midnight-ntwrk/wallet-api';
-import type { Resource } from '@midnight-ntwrk/wallet';
-import { expect } from 'vitest';
 import type { WalletContext } from '../../api';
+import * as Rx from 'rxjs';
+import * as ledger from '@midnight-ntwrk/ledger-v6';
+import type { Logger } from 'pino';
+import { expect } from 'vitest';
 
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
@@ -36,7 +34,7 @@ export class LocalTestConfig implements TestConfiguration {
   entrypoint = 'dist/standalone.js';
   psMode = 'undeployed';
   cacheFileName = '';
-  dappConfig = new StandaloneConfig();
+  dappConfig = new UndeployedConfig();
 }
 
 export function parseArgs(required: string[]): TestConfiguration {
@@ -59,11 +57,11 @@ export function parseArgs(required: string[]): TestConfiguration {
     }
   }
 
-   if (process.env.TEST_WALLET_MNEMONIC !== undefined) {
-    mnemonic = process.env.TEST_WALLET_MNEMONIC;
+  if (process.env.MY_PREVIEW_MNEMONIC !== undefined) {
+    mnemonic = process.env.MY_PREVIEW_MNEMONIC;
   }
 
-  let cfg: Config = new TestnetRemoteConfig();
+  let cfg: Config = new PreviewConfig();
   let env = '';
   let psMode = 'undeployed';
   let cacheFileName = '';
@@ -75,8 +73,8 @@ export function parseArgs(required: string[]): TestConfiguration {
     }
     switch (env) {
       case 'preview':
-        cfg = new TestnetRemoteConfig();
-        psMode = 'testnet';
+        cfg = new PreviewConfig();
+        psMode = 'preview';
         cacheFileName = `${seed.substring(0, 7)}-${psMode}.state`;
         break;
       default:
@@ -109,7 +107,7 @@ export class TestEnvironment {
 
   start = async (): Promise<TestConfiguration> => {
     if (process.env.RUN_ENV_TESTS === 'true') {
-      this.testConfig = parseArgs(['seed', 'env']);
+      this.testConfig = parseArgs(['env']);
       this.logger.info(`Test wallet seed: ${this.testConfig.seed}`);
       this.logger.info('Proof server starting...');
       this.container = await TestEnvironment.getProofServerContainer(this.testConfig.psMode);
@@ -126,9 +124,8 @@ export class TestEnvironment {
         .withWaitStrategy(
           'counter-proof-server',
           Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1),
-
         )
-        .withWaitStrategy('counter-indexer', Wait.forLogMessage(/starting indexing/, 1));
+        .withWaitStrategy('counter-indexer', Wait.forLogMessage('starting indexing', 1));
       this.env = await this.dockerEnv.up();
 
       this.testConfig.dappConfig = {
@@ -158,9 +155,9 @@ export class TestEnvironment {
   };
 
   static getProofServerContainer = async (env: string) =>
-    await new GenericContainer('midnightnetwork/proof-server:6.2.0-rc.2')
+    await new GenericContainer('midnightnetwork/proof-server:6.1.0-alpha.5')
       .withExposedPorts(6300)
-      .withCommand([`midnight-proof-server --network ${env}`])
+      .withCommand(['midnight-proof-server', '--network', env])
       .withEnvironment({ RUST_BACKTRACE: 'full' })
       .withWaitStrategy(Wait.forLogMessage('Actix runtime found; starting in Actix runtime', 1))
       .start();
@@ -179,14 +176,20 @@ export class TestEnvironment {
     }
   };
 
-  getWallet = async () => {
+  getWallet = async (): Promise<WalletContext> => {
     this.logger.info('Setting up wallet');
-    this.wallet = await api.buildWalletAndWaitForFunds(
-      this.testConfig.dappConfig,
-      this.testConfig.seed,
-      this.testConfig.cacheFileName,
-    );
-    const state = await Rx.firstValueFrom(this.wallet.state());
-    return this.wallet;
+
+    // Use hex seed for standalone (genesis wallet), mnemonic for preview
+    if (this.testConfig.dappConfig.networkId === "undeployed") {
+      this.walletContext = await api.buildWalletFromHexSeed(this.testConfig.dappConfig, this.testConfig.seed);
+    } else {
+      this.walletContext = await api.buildWalletAndWaitForFunds(this.testConfig.dappConfig, this.testConfig.mnemonic);
+    }
+
+    expect(this.walletContext).not.toBeNull();
+    const state = await Rx.firstValueFrom(this.walletContext.wallet.state());
+    const balance = state.unshielded?.balances[ledger.nativeToken().raw] ?? 0n;
+    expect(balance).toBeGreaterThan(BigInt(0));
+    return this.walletContext;
   };
 }

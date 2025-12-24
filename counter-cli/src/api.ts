@@ -1,18 +1,10 @@
-import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { Counter, type CounterPrivateState, witnesses } from '@meshsdk/counter-contract';
-import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
-import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
-import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
-import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
-import {
-  type FinalizedTxData,
-  type MidnightProvider,
-  type WalletProvider,
-  type BalancedProvingRecipe,
-} from '@midnight-ntwrk/midnight-js-types';
 import { type Logger } from 'pino';
 import * as Rx from 'rxjs';
 import { WebSocket } from 'ws';
+import { webcrypto } from 'crypto';
+import * as bip39 from '@scure/bip39';
+import { wordlist as english } from '@scure/bip39/wordlists/english.js';
+
 import {
   type CounterContract,
   type CounterPrivateStateId,
@@ -20,10 +12,26 @@ import {
   type DeployedCounterContract,
 } from './common-types';
 import { type Config, contractConfig } from './config';
-import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
-import { assertIsContractAddress } from '@midnight-ntwrk/midnight-js-utils';
-import { WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
+import { Counter, type CounterPrivateState, witnesses } from '@meshsdk/counter-contract';
+
+import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
 import * as ledger from '@midnight-ntwrk/ledger-v6';
+
+
+import { httpClientProofProvider } from '@midnight-ntwrk/midnight-js-http-client-proof-provider';
+import { indexerPublicDataProvider } from '@midnight-ntwrk/midnight-js-indexer-public-data-provider';
+import { levelPrivateStateProvider } from '@midnight-ntwrk/midnight-js-level-private-state-provider';
+import { NodeZkConfigProvider } from '@midnight-ntwrk/midnight-js-node-zk-config-provider';
+import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
+import { assertIsContractAddress } from '@midnight-ntwrk/midnight-js-utils';
+import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import {
+  type FinalizedTxData,
+  type MidnightProvider,
+  type WalletProvider,
+  type BalancedProvingRecipe,
+} from '@midnight-ntwrk/midnight-js-types';
+
 import {
   createKeystore,
   InMemoryTransactionHistoryStorage,
@@ -31,13 +39,10 @@ import {
   type UnshieldedKeystore,
   UnshieldedWallet,
 } from '@midnight-ntwrk/wallet-sdk-unshielded-wallet';
-import { webcrypto } from 'crypto';
-import * as bip39 from '@scure/bip39';
-import { wordlist as english } from '@scure/bip39/wordlists/english.js';
-import { HDWallet, Roles } from '@midnight-ntwrk/wallet-sdk-hd';
 import { ShieldedWallet } from '@midnight-ntwrk/wallet-sdk-shielded';
 import { DustWallet } from '@midnight-ntwrk/wallet-sdk-dust-wallet';
-import { setNetworkId } from '@midnight-ntwrk/midnight-js-network-id';
+import { WalletFacade } from '@midnight-ntwrk/wallet-sdk-facade';
+import { HDWallet, Roles } from '@midnight-ntwrk/wallet-sdk-hd';
 
 let logger: Logger;
 
@@ -233,9 +238,9 @@ export const waitForFunds = (wallet: WalletFacade) =>
  */
 export const displayWalletBalances = async (
   wallet: WalletFacade,
-): Promise<{ unshielded: bigint; shielded: bigint; total: bigint }> => {
+): Promise<{ unshielded: any; shielded: bigint; total: bigint }> => {
   const state = await Rx.firstValueFrom(wallet.state());
-  const unshielded = state.unshielded?.balances[ledger.nativeToken().raw] ?? 0n;
+  const unshielded = state.unshielded?.balances[ledger.nativeToken().raw] ?? 0n; 
   const shielded = state.shielded?.balances[ledger.nativeToken().raw] ?? 0n;
   const total = unshielded + shielded;
 
@@ -274,7 +279,7 @@ export const registerNightForDust = async (walletContext: WalletContext): Promis
     const recipe = await walletContext.wallet.registerNightUtxosForDustGeneration(
       unregisteredNightUtxos,
       walletContext.unshieldedKeystore.getPublicKey(),
-      (payload) => walletContext.unshieldedKeystore.signData(payload),
+      (payload) => walletContext.unshieldedKeystore.signData(payload)
     );
 
     logger.info('Finalizing dust registration transaction...');
@@ -314,26 +319,10 @@ export const mnemonicToSeed = async (mnemonic: string): Promise<Buffer> => {
   if (!bip39.validateMnemonic(words.join(' '), english)) {
     throw new Error('Invalid mnemonic phrase');
   }
-  // Use BIP39 standard seed derivation (PBKDF2) - produces 64 bytes
+  // Use BIP39 standard seed derivation (PBKDF2) - produces 64 bytes. hashes it (mixes it up) 2048 times using SHA-512
   const seed = await bip39.mnemonicToSeed(words.join(' '));
   return Buffer.from(seed);
 };
-
-// Wallet configuration type
-interface WalletConfiguration {
-  networkId: string;
-  costParameters: {
-    additionalFeeOverhead: bigint;
-    feeBlocksMargin: number;
-  };
-  relayURL: URL;
-  provingServerUrl: URL;
-  indexerClientConnection: {
-    indexerHttpUrl: string;
-    indexerWsUrl: string;
-  };
-  indexerUrl: string;
-}
 
 /**
  * Initialize wallet with seed using the new wallet SDK

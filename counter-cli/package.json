@@ -15,16 +15,17 @@
       "default": "./dist/index.js"
     }
   },
-  "scripts": {    
-    "testnet-remote-ps": "node --experimental-specifier-resolution=node --loader ts-node/esm src/testnet-remote-start-proof-server.ts",    
-    "standalone": "node --experimental-specifier-resolution=node --loader ts-node/esm src/standalone.ts",
-    "test-counter-api-standalone": "DEBUG='testcontainers' vitest run counter.api.test.ts",
-    "test-counter-api-testnet": "RUN_ENV_TESTS=true TEST_ENV=testnet TEST_WALLET_SEED=1dec0dd58fbe4d3206ef960aebff95a77e09dffbd19f3e9439d23fe6de4fcdd1 SYNC_CACHE=./src/test vitest run counter.api.test.ts",
-    "prepare-standalone": "DEBUG='testcontainers' vitest run prepare-standalone.test.ts",        
+  "scripts": {      
+    "test-undeployed": "vitest run counter.test.ts",  
+    "test-preview": "RUN_ENV_TESTS=true TEST_ENV=preview vitest run counter.test.ts",
+    "tui-undeployed": "node --experimental-specifier-resolution=node --loader ts-node/esm src/tui_standalone.ts",     
+    "tui-preview": "node --experimental-specifier-resolution=node --loader ts-node/esm src/tui_preview.ts", 
+    "setup-undeployed": "vitest run prepare-standalone.test.ts", 
+    "ps-undeployed": "docker compose -f proof-server-undeployed.yml up",
+    "ps-preview": "docker compose -f proof-server-preview.yml up",               
     "build": "rm -rf dist && tsc --project tsconfig.build.json",
     "lint": "eslint src",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "run-proof-server-testnet": "docker compose -f proof-server-testnet.yml up"    
+    "typecheck": "tsc -p tsconfig.json --noEmit"   
   },
   "dependencies": {    
     "@meshsdk/counter-contract": "*"    

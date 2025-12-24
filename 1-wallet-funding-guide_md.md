@@ -314,3 +314,7 @@ echo "=== DUST Balance ==="
 4. **Verify** with `show-wallet` and `dust-balance`
 
 The key innovation is **DUST fee delegation** - Alice (`..01`) can pay the DUST fees for registering any wallet, solving the chicken-and-egg problem of needing DUST to get DUST.
+
+
+
+docker run -p 6300:6300 midnightnetwork/proof-server:6.1.0-alpha.6 -- midnight-proof-server --network preview

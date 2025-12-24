@@ -3,7 +3,7 @@ import { createInterface, type Interface } from 'node:readline/promises';
 import { type Logger } from 'pino';
 import { type StartedDockerComposeEnvironment, type DockerComposeEnvironment } from 'testcontainers';
 import { type CounterProviders, type DeployedCounterContract } from './common-types';
-import { type Config, StandaloneConfig } from './config';
+import { type Config, UndeployedConfig } from './config';
 import * as api from './api';
 import type { WalletContext } from './api';
 import 'dotenv/config';
@@ -89,13 +89,13 @@ You can do one of the following:
 Which would you like to do? `;
 
 const buildWallet = async (config: Config, rli: Interface): Promise<WalletContext | null> => {
-  if (config instanceof StandaloneConfig) {
+  if (config instanceof UndeployedConfig) {
     // For standalone, use genesis wallet with hex seed
     return await api.buildWalletFromHexSeed(config, GENESIS_MINT_WALLET_SEED);
   }
 
   // Check if mnemonic is available in environment
-  const envMnemonic = process.env.WALLET_MNEMONIC;
+  const envMnemonic = process.env.MY_PREVIEW_MNEMONIC;
 
   while (true) {
     const choice = await rli.question(WALLET_LOOP_QUESTION);
@@ -140,7 +140,7 @@ export const run = async (config: Config, _logger: Logger, dockerEnv?: DockerCom
   if (dockerEnv !== undefined) {
     env = await dockerEnv.up();
 
-    if (config instanceof StandaloneConfig) {
+    if (config instanceof UndeployedConfig) {
       config.indexer = mapContainerPort(env, config.indexer, 'counter-indexer');
       config.indexerWS = mapContainerPort(env, config.indexerWS, 'counter-indexer');
       config.node = mapContainerPort(env, config.node, 'counter-node');

@@ -29,7 +29,7 @@ describe("Counter smart contract", () => {
     expect(initialPrivateState).toEqual({ privateCounter: 0 });
 
     logger.info({
-      section: "Intial Values",
+      section: "Values",
       initialLedgerState,
       initialPrivateState,
       initialLocalZswap: circuitContext.currentZswapLocalState
@@ -57,7 +57,7 @@ describe("Counter smart contract", () => {
     const circuitContext = simulator.as("p1").getCircuitContext();
 
     logger.info({
-      section: "Intial Values",
+      section: "Values",
       ledgerState: nextLedgerState,
       privateState: nextPrivateState,
       localZswap: circuitContext.currentZswapLocalState
@@ -73,6 +73,6 @@ describe("Counter smart contract", () => {
       block: circuitContext.currentQueryContext.block,
       comIndices: circuitContext.currentQueryContext.comIndices,
       effects: circuitContext.currentQueryContext.effects
-    }); 
+    });     
   });
 });

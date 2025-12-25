@@ -124,6 +124,15 @@ export class CounterSimulator {
         ? emptyZswapLocalState(sender)
         : this.circuitContext.currentZswapLocalState
     }); 
+
+    logger.info("INCREMET CIRCUIT");
+    logger.info({
+      section: "Circuit Results",
+      gasCost: circuitResults.gasCost,
+      proofData: circuitResults.proofData,
+      result: circuitResults.result
+    });
+
     return this.updateStateAndGetLedger(circuitResults);
   }
 }

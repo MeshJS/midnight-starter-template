@@ -13,17 +13,24 @@ import {
   type Ledger,
   ledger
 } from "../../managed/board/contract/index.cjs";
-import { type BBoardPrivateState, createBBoardPrivateState, witnesses } from "../../witnesses.js";
+import {
+  type BBoardPrivateState,
+  createBBoardPrivateState,
+  witnesses
+} from "../../witnesses.js";
 import { createLogger } from "../../logger-utils.js";
 import { LogicTestingConfig } from "../../config.js";
-import { ContractAddress, encodeTokenType } from '@midnight-ntwrk/onchain-runtime';
+import {
+  ContractAddress,
+  encodeTokenType
+} from "@midnight-ntwrk/onchain-runtime";
 import { p1 } from "../bboard.test.js";
 
 const config = new LogicTestingConfig();
 export const logger = await createLogger(config.logDir);
 
 export class BBoardSimulator {
-  readonly contract: Contract<BBoardPrivateState>;  
+  readonly contract: Contract<BBoardPrivateState>;
   circuitContext: CircuitContext<BBoardPrivateState>;
   userPrivateStates: Record<string, BBoardPrivateState>;
   updateUserPrivateState: (newPrivateState: BBoardPrivateState) => void;
@@ -48,7 +55,7 @@ export class BBoardSimulator {
         this.contractAddress
       )
     };
-    this.userPrivateStates = { ['p1']: currentPrivateState };
+    this.userPrivateStates = { ["p1"]: currentPrivateState };
     this.updateUserPrivateState = (newPrivateState: BBoardPrivateState) => {};
   }
 
@@ -60,10 +67,12 @@ export class BBoardSimulator {
     this.userPrivateStates[pName] = createBBoardPrivateState(secretKey);
   }
 
-  private buildTurnContext(currentPrivateState: BBoardPrivateState): CircuitContext<BBoardPrivateState> {
+  private buildTurnContext(
+    currentPrivateState: BBoardPrivateState
+  ): CircuitContext<BBoardPrivateState> {
     return {
       ...this.circuitContext,
-      currentPrivateState,
+      currentPrivateState
     };
   }
 
@@ -76,7 +85,9 @@ export class BBoardSimulator {
   as(name: string): BBoardSimulator {
     const ps = this.userPrivateStates[name];
     if (!ps) {
-      throw new Error(`No private state found for user '${name}'. Did you register it?`);
+      throw new Error(
+        `No private state found for user '${name}'. Did you register it?`
+      );
     }
     this.circuitContext = this.buildTurnContext(ps);
     this.updateUserPrivateState = this.updateUserPrivateStateByName(name);
@@ -91,11 +102,13 @@ export class BBoardSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  updateStateAndGetLedger<T>(circuitResults: CircuitResults<BBoardPrivateState, T>): Ledger {
-    this.circuitContext = circuitResults.context;     
+  updateStateAndGetLedger<T>(
+    circuitResults: CircuitResults<BBoardPrivateState, T>
+  ): Ledger {
+    this.circuitContext = circuitResults.context;
     this.updateUserPrivateState(circuitResults.context.currentPrivateState);
     return this.getLedger();
-  }   
+  }
 
   public post(message: string, sender?: CoinPublicKey): Ledger {
     // Update the current context to be the result of executing the circuit.
@@ -104,7 +117,7 @@ export class BBoardSimulator {
         ...this.circuitContext,
         currentZswapLocalState: sender
           ? emptyZswapLocalState(sender)
-          : this.circuitContext.currentZswapLocalState,
+          : this.circuitContext.currentZswapLocalState
       },
       message
     );
@@ -112,14 +125,12 @@ export class BBoardSimulator {
   }
 
   public takeDown(sender?: CoinPublicKey): Ledger {
-    const circuitResults = this.contract.impureCircuits.takeDown(
-      {
-        ...this.circuitContext,
-        currentZswapLocalState: sender
-          ? emptyZswapLocalState(sender)
-          : this.circuitContext.currentZswapLocalState,
-      },
-    );
+    const circuitResults = this.contract.impureCircuits.takeDown({
+      ...this.circuitContext,
+      currentZswapLocalState: sender
+        ? emptyZswapLocalState(sender)
+        : this.circuitContext.currentZswapLocalState
+    });
     return this.updateStateAndGetLedger(circuitResults);
   }
 
@@ -133,7 +144,7 @@ export class BBoardSimulator {
         ...this.circuitContext,
         currentZswapLocalState: sender
           ? emptyZswapLocalState(sender)
-          : this.circuitContext.currentZswapLocalState,
+          : this.circuitContext.currentZswapLocalState
       },
       this.getPrivateState().secretKey,
       instance

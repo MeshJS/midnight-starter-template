@@ -1,21 +1,29 @@
-import {
-  type CircuitContext,
-  QueryContext,
-  sampleContractAddress,
-  createConstructorContext,
-  CostModel
-} from "@midnight-ntwrk/compact-runtime";
+import { createLogger } from "../../logger.js";
+import { LogicTestingConfig } from "../../config.js";
+import { player1 } from "../counter.test.js";
+
 import {
   Contract,
   type Ledger,
   ledger
 } from "../../managed/counter/contract/index.js";
-import { type CounterPrivateState, witnesses } from "../../witnesses.js";
-import { createLogger } from "../../logger.js";
-import { LogicTestingConfig } from "../../config.js";
+import {
+  type CounterPrivateState,
+  createPrivateState,
+  witnesses
+} from "../../witnesses.js";
 
-// This is over-kill for such a simple contract, but the same pattern can be used to test more
-// complex contracts.
+import {
+  type CircuitContext,
+  QueryContext,
+  sampleContractAddress,
+  createConstructorContext,
+  CostModel,
+  CircuitResults,
+  CoinPublicKey,
+  emptyZswapLocalState
+} from "@midnight-ntwrk/compact-runtime";
+import { ContractAddress } from "@midnight-ntwrk/onchain-runtime";
 
 const config = new LogicTestingConfig();
 export const logger = await createLogger(config.logDir);
@@ -23,25 +31,69 @@ export const logger = await createLogger(config.logDir);
 export class CounterSimulator {
   readonly contract: Contract<CounterPrivateState>;
   circuitContext: CircuitContext<CounterPrivateState>;
+  userPrivateStates: Record<string, CounterPrivateState>;
+  updateUserPrivateState: (newPrivateState: CounterPrivateState) => void;
+  contractAddress: ContractAddress;
 
-  constructor() {
+  constructor(privateState: CounterPrivateState) {
     this.contract = new Contract<CounterPrivateState>(witnesses);
+    this.contractAddress = sampleContractAddress();
     const {
       currentPrivateState,
       currentContractState,
-      currentZswapLocalState,
+      currentZswapLocalState
     } = this.contract.initialState(
-      createConstructorContext({ privateCounter: 0 }, "0".repeat(64))
+      createConstructorContext(
+        { privateCounter: privateState.privateCounter },
+        player1
+      )
     );
     this.circuitContext = {
       currentPrivateState,
-      currentZswapLocalState,  
+      currentZswapLocalState,
       currentQueryContext: new QueryContext(
         currentContractState.data,
-        sampleContractAddress()
-      ),   
-      costModel: CostModel.initialCostModel(),
+        this.contractAddress
+      ),
+      costModel: CostModel.initialCostModel()
     };
+    this.userPrivateStates = { ["p1"]: currentPrivateState };
+    this.updateUserPrivateState = (newPrivateState: CounterPrivateState) => {};
+  }
+
+  static deployContract(secretKey: number): CounterSimulator {
+    return new CounterSimulator(createPrivateState(secretKey));
+  }
+
+  createPrivateState(pName: string, secretKey: number): void {
+    this.userPrivateStates[pName] = createPrivateState(secretKey);
+  }
+
+  private buildTurnContext(
+    currentPrivateState: CounterPrivateState
+  ): CircuitContext<CounterPrivateState> {
+    return {
+      ...this.circuitContext,
+      currentPrivateState
+    };
+  }
+
+  private updateUserPrivateStateByName =
+    (name: string) =>
+    (newPrivateState: CounterPrivateState): void => {
+      this.userPrivateStates[name] = newPrivateState;
+    };
+
+  as(name: string): CounterSimulator {
+    const ps = this.userPrivateStates[name];
+    if (!ps) {
+      throw new Error(
+        `No private state found for user '${name}'. Did you register it?`
+      );
+    }
+    this.circuitContext = this.buildTurnContext(ps);
+    this.updateUserPrivateState = this.updateUserPrivateStateByName(name);
+    return this;
   }
 
   public getLedger(): Ledger {
@@ -52,29 +104,26 @@ export class CounterSimulator {
     return this.circuitContext.currentPrivateState;
   }
 
-  public increment(): Ledger {
-    // Update the current context to be the result of executing the circuit.
-    const circuitResults = this.contract.impureCircuits.increment(
-      this.circuitContext
-    );
-    logger.info({
-      section: "Circuit Context",
-      currentPrivateState: circuitResults.context.currentPrivateState,
-      currentZswapLocalState: circuitResults.context.currentZswapLocalState,   
-    });
-    logger.info({
-      section: "Circuit Proof Data",
-      input: circuitResults.proofData.input,
-      output: circuitResults.proofData.output,
-      privateTranscriptOutputs:
-        circuitResults.proofData.privateTranscriptOutputs,
-      publicTranscript: circuitResults.proofData.publicTranscript
-    });
-    logger.info({
-      section: "Circuit result",
-      result: circuitResults.result
-    });
+  public getCircuitContext(): CircuitContext<CounterPrivateState> {
+    return this.circuitContext;
+  }
+
+  updateStateAndGetLedger<T>(
+    circuitResults: CircuitResults<CounterPrivateState, T>
+  ): Ledger {
     this.circuitContext = circuitResults.context;
-    return ledger(this.circuitContext.currentQueryContext.state);
+    this.updateUserPrivateState(circuitResults.context.currentPrivateState);
+    return this.getLedger();
+  }
+
+  public increment(sender?: CoinPublicKey): Ledger {
+    // Update the current context to be the result of executing the circuit.
+    const circuitResults = this.contract.impureCircuits.increment({
+      ...this.circuitContext,
+      currentZswapLocalState: sender
+        ? emptyZswapLocalState(sender)
+        : this.circuitContext.currentZswapLocalState
+    }); 
+    return this.updateStateAndGetLedger(circuitResults);
   }
 }

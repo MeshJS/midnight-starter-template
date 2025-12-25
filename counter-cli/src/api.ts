@@ -108,29 +108,51 @@ export const increment = async (counterContract: DeployedCounterContract): Promi
   logger.info('Incrementing...');
   const finalizedTxData = await counterContract.callTx.increment();
   logger.info({
-    section: 'General Section',
+    section: 'PUBLIC',
     tx: finalizedTxData.public.tx,
     txHash: finalizedTxData.public.txHash,
     txId: finalizedTxData.public.txId,
     blockHeight: finalizedTxData.public.blockHeight,
     blockHash: finalizedTxData.public.blockHash,
+    blockAuthority: finalizedTxData.public.blockAuthor,
+    blockTimestamp: finalizedTxData.public.blockTimestamp,
+    fees: finalizedTxData.public.fees,
     nextContractState: finalizedTxData.public.nextContractState,
     publicTranscript: finalizedTxData.public.publicTranscript,
     status: finalizedTxData.public.status,
+    identifiers: finalizedTxData.public.identifiers,
+    indexerId: finalizedTxData.public.indexerId,
+    protocolVersion: finalizedTxData.public.protocolVersion,
+    segmentStatusMap: finalizedTxData.public.segmentStatusMap,
+    unshielded: finalizedTxData.public.unshielded,
   });
 
   logger.info({
     section: 'Guaranteed-Effects',
     claimedContractCalls: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedContractCalls,
     claimedNullifiers: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedNullifiers,
+    claimedShieldedReceives: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedShieldedReceives,
+    claimedShieldedSpends: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedShieldedSpends,
+    claimedUnshieldedSpends: finalizedTxData.public.partitionedTranscript[0]?.effects.claimedUnshieldedSpends,
+    shieldedMints: finalizedTxData.public.partitionedTranscript[0]?.effects.shieldedMints,
+    unshieldedInputs: finalizedTxData.public.partitionedTranscript[0]?.effects.unshieldedInputs,
+    unshieldedMints: finalizedTxData.public.partitionedTranscript[0]?.effects.unshieldedMints,
+    unshieldedOutputs: finalizedTxData.public.partitionedTranscript[0]?.effects.unshieldedOutputs,
     gas: finalizedTxData.public.partitionedTranscript[0]?.gas,
     program: finalizedTxData.public.partitionedTranscript[0]?.program,
   });
 
   logger.info({
     section: 'Fallible-Effects',
-    claimedContractCalls: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedContractCalls,
+   claimedContractCalls: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedContractCalls,
     claimedNullifiers: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedNullifiers,
+    claimedShieldedReceives: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedShieldedReceives,
+    claimedShieldedSpends: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedShieldedSpends,
+    claimedUnshieldedSpends: finalizedTxData.public.partitionedTranscript[1]?.effects.claimedUnshieldedSpends,
+    shieldedMints: finalizedTxData.public.partitionedTranscript[1]?.effects.shieldedMints,
+    unshieldedInputs: finalizedTxData.public.partitionedTranscript[1]?.effects.unshieldedInputs,
+    unshieldedMints: finalizedTxData.public.partitionedTranscript[1]?.effects.unshieldedMints,
+    unshieldedOutputs: finalizedTxData.public.partitionedTranscript[1]?.effects.unshieldedOutputs,
     gas: finalizedTxData.public.partitionedTranscript[1]?.gas,
     program: finalizedTxData.public.partitionedTranscript[1]?.program,
   });
@@ -169,9 +191,15 @@ export const createWalletAndMidnightProvider = async (
 ): Promise<WalletProvider & MidnightProvider> => {
   const state = await Rx.firstValueFrom(walletContext.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
   logger.info({
-    section: 'Wallet State',
+    section: 'DUST Wallet State',
     dust: state.dust,
+  });
+   logger.info({
+    section: 'Shielded Wallet State',
     shielded: state.shielded,
+  });
+   logger.info({
+    section: 'Unshielded Wallet State',
     unshielded: state.unshielded,
   });
   return {

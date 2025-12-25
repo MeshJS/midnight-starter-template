@@ -12,7 +12,8 @@ const logDir = path.resolve(currentDir, '..', 'logs', 'setup-undeployed', `${new
 const logger = await createLogger(logDir);
 
 async function sendNativeToken(wallet: api.WalletContext, address: string, amount: bigint): Promise<string> {
-  const txTtl = new Date(Date.now() + 30 * 60 * 1000); // 30 min
+  const txTtl = new Date(Date.now() + 300 * 60 * 1000); // 30 min  
+
   const transferRecipe = await wallet.wallet.transferTransaction(
     wallet.shieldedSecretKeys,
     wallet.dustSecretKey,
@@ -29,15 +30,17 @@ async function sendNativeToken(wallet: api.WalletContext, address: string, amoun
       },
     ],
     txTtl,
-  );
+  ); 
+
   logger.info('Finalizing dust registration transaction...');
-  const finalizedTx = await wallet.wallet.finalizeTransaction(transferRecipe);
+  const finalizedTx = await wallet.wallet.finalizeTransaction(transferRecipe);  
 
   logger.info('Submitting dust registration transaction...');
-  const txId = await wallet.wallet.submitTransaction(transferRecipe);
+  const txId = await wallet.wallet.submitTransaction(finalizedTx); 
   logger.info(`Dust registration submitted with tx id: ${txId}`);
 
-  return txId;
+  // return txId;
+  return txId
 }
 
 describe('Prepare Standalone', () => {
@@ -74,7 +77,8 @@ describe('Prepare Standalone', () => {
   );
 
   it('Initialize standalone', async () => {
-    await sendNativeToken(wallet, process.env.my_preview_undeployed_wallet!, 10n);
-    logger.info('funded');
+    const address = process.env.MY_UNDEPLOYED_ADDRESS!
+    const result = await sendNativeToken(wallet, address, 10000000n);
+    logger.info(result);
   });
 });

@@ -1,25 +1,24 @@
 import { type Logger } from 'pino';
 import { type ContractAddress } from '@midnight-ntwrk/compact-runtime';
-import { type Observable } from 'rxjs';
 import * as Rx from 'rxjs';
 import { CounterContract, CounterPrivateStateId, CounterProviders, DeployedCounterContract, emptyState, UserAction, type DerivedState } from './common-types';
-import { Contract, ledger, CounterPrivateState, createPrivateState, witnesses } from '@meshsdk/counter-contract';
+import { Counter, CounterPrivateState, createPrivateState, witnesses } from '@meshsdk/counter-contract';
 import { deployContract, findDeployedContract } from '@midnight-ntwrk/midnight-js-contracts';
 import { PrivateStateProvider } from '@midnight-ntwrk/midnight-js-types';
 
-export const counterContractInstance: CounterContract = new Contract(witnesses);
+export const counterContractInstance: CounterContract = new Counter.Contract(witnesses);
 
 export interface ContractControllerInterface {
   readonly deployedContractAddress: ContractAddress;   
-  readonly state$: Observable<DerivedState>;
+  readonly state$: Rx.Observable<DerivedState>;
   increment: () => Promise<void>;
 }
 
 export class ContractController implements ContractControllerInterface {
   readonly deployedContractAddress: ContractAddress;
-  readonly turns$: Rx.Subject<UserAction>;
-  readonly state$: Observable<DerivedState>;
+  readonly state$: Rx.Observable<DerivedState>;
   readonly privateStates$: Rx.Subject<CounterPrivateState>;
+  readonly turns$: Rx.Subject<UserAction>;  
 
   private constructor(
     public readonly contractPrivateStateId: typeof CounterPrivateStateId,
@@ -41,7 +40,7 @@ export class ContractController implements ContractControllerInterface {
       [
         providers.publicDataProvider
           .contractStateObservable(this.deployedContractAddress, { type: 'all' })
-          .pipe(Rx.map((contractState) => ledger(contractState.data))),
+          .pipe(Rx.map((contractState) => Counter.ledger(contractState.data))),
         Rx.concat(
           Rx.from(
             Rx.defer(() => providers.privateStateProvider.get(contractPrivateStateId) as Promise<CounterPrivateState>),

@@ -6,6 +6,7 @@ import { createLogger } from '../logger';
 import { TestEnvironment } from './simulators/simulator';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import 'dotenv/config';
+import * as Rx from 'rxjs';
 
 let logDir: string;
 const network = process.env.TEST_ENV || 'undeployed';
@@ -38,19 +39,43 @@ describe('API', () => {
   });
 
   it('should deploy the contract and increment the counter [@slow]', async () => {
-    const counterContract = await api.deploy(providers, { privateCounter: 0 });
-    // expect(counterContract).not.toBeNull();
+    const counterContractDeployed = await api.deploy(providers, { privateCounter: 0 });
+    expect(counterContractDeployed).not.toBeNull();
 
-    // const counter = await api.displayCounterValue(providers, counterContract);
-    // expect(counter.counterValue).toEqual(BigInt(0));
+    const counter = await api.displayCounterValue(providers, counterContractDeployed);
+    expect(counter.counterValue).toEqual(BigInt(0));
 
-    // await new Promise((resolve) => setTimeout(resolve, 2000));
-    // const response = await api.increment(counterContract);
-    // expect(response.txHash).toMatch(/[0-9a-f]{64}/);
-    // expect(response.blockHeight).toBeGreaterThan(BigInt(0));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const response = await api.increment(counterContractDeployed);
 
-    // const counterAfter = await api.displayCounterValue(providers, counterContract);
-    // expect(counterAfter.counterValue).toEqual(BigInt(1));
-    // expect(counterAfter.contractAddress).toEqual(counter.contractAddress);
+    const state = await Rx.firstValueFrom(wallet.wallet.state().pipe(Rx.filter((s) => s.isSynced)));
+    logger.info({
+      section: 'DUST Wallet State',
+      dust: state.dust,
+    });
+    logger.info({
+      section: 'Shielded Wallet State',
+      shielded: state.shielded,
+    });
+    logger.info({
+      section: 'Unshielded Wallet State',
+      unshielded: state.unshielded,
+    });
+
+    expect(response.txHash).toMatch(/[0-9a-f]{64}/);
+    expect(response.blockHeight).toBeGreaterThan(BigInt(0));
+
+    const counterAfter = await api.displayCounterValue(providers, counterContractDeployed);
+    expect(counterAfter.counterValue).toEqual(BigInt(1));
+    expect(counterAfter.contractAddress).toEqual(counter.contractAddress);
+  });
+
+  it('Wallet Funcitonalities', async () => {
+    logger.info({
+      section: 'Wallet Context',
+      dustSecretKey: wallet.dustSecretKey,
+      sshieldedSecretKeys: wallet.shieldedSecretKeys,
+      unshieldedKeystore: wallet.unshieldedKeystore,
+    });
   });
 });

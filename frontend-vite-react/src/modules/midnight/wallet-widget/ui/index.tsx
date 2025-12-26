@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button } from "../common/button";
+import { Button } from "./common/button";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../common/dialog";
+} from "./common/dialog";
 import { useAssets, useWallet } from "@meshsdk/midnight-react";
 import ConnectedButton from "./connected-button";
 import { screens } from "./data";
@@ -18,8 +18,8 @@ export const MidnightWallet = () => {
   const [screen] = useState("main");
   const { hasConnectedWallet } = useAssets();
 
-  return (    
-      <Dialog open={open} onOpenChange={setOpen}>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
       <div>
         {!hasConnectedWallet ? (
           <DialogTrigger asChild>
@@ -40,7 +40,7 @@ export const MidnightWallet = () => {
         {screen == "main" && <ScreenMain setOpen={setOpen} />}
         <Footer />
       </DialogContent>
-    </Dialog>    
+    </Dialog>
   );
 };
 
@@ -49,9 +49,7 @@ interface HeaderProps {
   setScreen: (screen: string) => void;
 }
 
-function Header({
-  screen,
-}: Omit<HeaderProps, 'setScreen'>) {
+function Header({ screen }: Omit<HeaderProps, "setScreen">) {
   return (
     <DialogHeader>
       <DialogTitle className="flex justify-between">

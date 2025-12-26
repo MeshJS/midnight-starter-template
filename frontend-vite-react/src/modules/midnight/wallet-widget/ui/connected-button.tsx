@@ -1,6 +1,11 @@
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../common/dropdown-menu';
-import { Button } from '../common/button';
-import { useAssets, useWallet } from '@meshsdk/midnight-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./common/dropdown-menu";
+import { Button } from "./common/button";
+import { useAssets, useWallet } from "@meshsdk/midnight-react";
 
 export default function ConnectedButton() {
   const { disconnect } = useWallet();

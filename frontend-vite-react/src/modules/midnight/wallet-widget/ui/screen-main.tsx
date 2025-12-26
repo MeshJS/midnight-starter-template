@@ -1,8 +1,8 @@
-import IconLace from '../common/icons/icon-lace';
-import { TooltipProvider } from '../common/tooltip';
-import { useWallet, useWalletList } from '@meshsdk/midnight-react';
-import WalletIcon from './wallet-icon';
-import { type JSX } from 'react';
+import IconLace from "./common/icons/icon-lace";
+import { TooltipProvider } from "./common/tooltip";
+import { useWallet, useWalletList } from "@meshsdk/midnight-react";
+import WalletIcon from "./wallet-icon";
+import { type JSX } from "react";
 
 export default function ScreenMain({
   setOpen,
@@ -14,8 +14,10 @@ export default function ScreenMain({
   const { connectWallet } = useWallet();
 
   // Example config map for wallet overrides
-  const walletsConfig: { [key: string]: { key: string; displayName: string; icon: JSX.Element } } = {
-    lace: { key: 'mnLace', displayName: 'LACE', icon: <IconLace /> }
+  const walletsConfig: {
+    [key: string]: { key: string; displayName: string; icon: JSX.Element };
+  } = {
+    lace: { key: "mnLace", displayName: "LACE", icon: <IconLace /> },
   };
 
   return (

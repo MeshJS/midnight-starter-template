@@ -1,8 +1,4 @@
-import {
-  Tooltip,
-  TooltipContent,  
-  TooltipTrigger,
-} from "../common/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./common/tooltip";
 
 export default function WalletIcon({
   icon,
@@ -22,7 +18,7 @@ export default function WalletIcon({
           className="flex items-center justify-center rounded-lg w-10 h-10 border border-zinc-700 hover:border-zinc-200 cursor-pointer"
           onClick={action}
         >
-          {icon && <img src={icon} alt={name} className="w-8 h-8"/>}
+          {icon && <img src={icon} alt={name} className="w-8 h-8" />}
           {iconReactNode && iconReactNode}
         </button>
       </TooltipTrigger>

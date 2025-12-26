@@ -1,2 +1,2 @@
-export * from "./midnight-wallet";
+export * from "./ui";
 

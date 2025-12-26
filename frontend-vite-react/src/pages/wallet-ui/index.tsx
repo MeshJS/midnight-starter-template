@@ -1,21 +1,12 @@
-import { MidnightWallet } from "@/modules/midnight/wallet-widget";
-import { useAssets, useWallet } from "@meshsdk/midnight-react";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link2, Server, Wifi, WifiOff, Wallet, Key } from "lucide-react";
+import { MidnightWallet } from "@/modules/midnight/wallet-widget/ui";
+import { useWallet } from "@/modules/midnight/wallet-widget/hooks/useWallet";
 
-export function WalletUI() {
-  const {
-    address,
-    coinPublicKey,
-    encryptionPublicKey,
-    hasConnectedWallet,
-    isProofServerOnline,
-    uris,
-    walletName,
-  } = useAssets();
-  const { connectingWallet, disconnect, setOpen, connectWallet } = useWallet();
+export function WalletUI() { 
+  const { connectingWallet, disconnect, setOpen, connectWallet, status, proofServerOnline, initialAPI, unshieldedAddress, shieldedAddresses, serviceUriConfig } = useWallet();
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -93,15 +84,15 @@ export function WalletUI() {
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Wallet Status</h3>
               <div className="flex items-center gap-2 text-sm">
-                <div className={`h-2 w-2 rounded-full ${hasConnectedWallet ? 'bg-green-500' : 'bg-gray-500'}`} />
-                {hasConnectedWallet ? 'Connected' : 'Disconnected'}
+                <div className={`h-2 w-2 rounded-full ${status?.status ? 'bg-green-500' : 'bg-gray-500'}`} />
+                {status?.status === "connected" ? 'Connected' : 'Disconnected'}
               </div>
             </div>
 
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Proof Server</h3>
               <div className="flex items-center gap-2 text-sm">
-                {isProofServerOnline ? (
+                {proofServerOnline ? (
                   <>
                     <Wifi className="h-4 w-4 text-green-500" />
                     <span>Online</span>
@@ -118,14 +109,21 @@ export function WalletUI() {
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Wallet Name</h3>
               <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono">
-                {walletName || 'Not connected'}
+                {initialAPI?.name || 'Not connected'}
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-medium">Address</h3>
+              <h3 className="text-sm font-medium">Unshielded Address</h3>
               <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono break-all">
-                {address || 'Not connected'}
+                {unshieldedAddress?.unshieldedAddress || 'Not connected'}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Shielded Address</h3>
+              <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono break-all">
+                {shieldedAddresses?.shieldedAddress || 'Not connected'}
               </div>
             </div>
 
@@ -140,14 +138,14 @@ export function WalletUI() {
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Coin Public Key</h3>
               <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono break-all">
-                {coinPublicKey || 'Not connected'}
+                {shieldedAddresses?.shieldedCoinPublicKey || 'Not connected'}
               </div>
             </div>
 
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Encryption Public Key</h3>
               <div className="bg-muted px-3 py-2 rounded-md text-sm font-mono break-all">
-                {encryptionPublicKey || 'Not connected'}
+                {shieldedAddresses?.shieldedEncryptionPublicKey || 'Not connected'}
               </div>
             </div>
 
@@ -158,28 +156,28 @@ export function WalletUI() {
                   <Server className="h-4 w-4 mt-0.5 flex-shrink-0 opacity-50" />
                   <div>
                     <div className="text-xs text-muted-foreground">Substrate Node</div>
-                    <div className="truncate">{uris?.substrateNodeUri || 'Not available'}</div>
+                    <div className="truncate">{serviceUriConfig?.substrateNodeUri || 'Not available'}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Server className="h-4 w-4 mt-0.5 flex-shrink-0 opacity-50" />
                   <div>
                     <div className="text-xs text-muted-foreground">Indexer (REST)</div>
-                    <div className="truncate">{uris?.indexerUri || 'Not available'}</div>
+                    <div className="truncate">{serviceUriConfig?.indexerUri || 'Not available'}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Server className="h-4 w-4 mt-0.5 flex-shrink-0 opacity-50" />
                   <div>
                     <div className="text-xs text-muted-foreground">Indexer (WebSocket)</div>
-                    <div className="truncate">{uris?.indexerWsUri || 'Not available'}</div>
+                    <div className="truncate">{serviceUriConfig?.indexerWsUri || 'Not available'}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-2">
                   <Server className="h-4 w-4 mt-0.5 flex-shrink-0 opacity-50" />
                   <div>
                     <div className="text-xs text-muted-foreground">Proof Server</div>
-                    <div className="truncate">{uris?.proverServerUri || 'Not available'}</div>
+                    <div className="truncate">{serviceUriConfig?.proverServerUri || 'Not available'}</div>
                   </div>
                 </div>
               </div>

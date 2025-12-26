@@ -1,38 +1,52 @@
 import { useContext } from "react";
-import { WalletContext } from "../contexts";
+import { WalletContext } from "../contexts/wallet";
 
 export const useWallet = () => {
   const {
-    hasConnectedWallet,   
-    open,
-    setOpen, 
-    midnightBrowserWalletInstance,
     connectingWallet,
+    open,
+    setOpen,
+    error,
+    initialAPI,
+    connectedAPI,
+    serviceUriConfig,
+    status,
+    dustAddress,
+    dustBalance,
+    shieldedAddresses,
+    shieldedBalances,
+    unshieldedAddress,
+    unshieldedBalances,
+    proofServerOnline,
     connectWallet,
     disconnect,
-    setWallet,    
-    error,
-    address,
-    state,
+    refresh,
   } = useContext(WalletContext);
 
   if (connectWallet === undefined || disconnect === undefined) {
     throw new Error(
-      "Can't call useWallet outside of the WalletProvider context",
+      "Can't call useWallet outside of the WalletProvider context"
     );
   }
 
   return {
-    hasConnectedWallet,  
-    open,
-    setOpen,  
-    midnightBrowserWalletInstance,
     connectingWallet,
+    open,
+    setOpen,
+    error,
+    initialAPI,
+    connectedAPI,
+    serviceUriConfig,
+    status,
+    dustAddress,
+    dustBalance,
+    shieldedAddresses,
+    shieldedBalances,
+    unshieldedAddress,
+    unshieldedBalances,
+    proofServerOnline,
     connectWallet,
     disconnect,
-    setWallet,    
-    error,
-    address,
-    state,
+    refresh,
   };
 };

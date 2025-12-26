@@ -18,7 +18,7 @@ import {
   throwError,
   timeout,
 } from "rxjs";
-import { checkProofServerStatus } from "../utils/proofServer/utils";
+import { checkProofServerStatus } from "../../utils/proofServer/utils";
 import {  DustAddress, DustBalance, ShieldedAddress, ShieldedBalance, UnshieldedAddress, UnshieldedBalanceDappConnector } from "./common-types";
 
 declare global {
@@ -39,7 +39,7 @@ export class MidnightBrowserWallet {
     public shieldedBalances: ShieldedBalance | undefined,
     public unshieldedAddress: UnshieldedAddress | undefined,
     public unshieldedBalances: UnshieldedBalanceDappConnector | undefined,
-    public proofServerOnline: boolean | undefined,
+    public proofServerOnline: boolean = false,
     public logger?: Logger
   ) {}
 
@@ -115,7 +115,7 @@ export class MidnightBrowserWallet {
             }),
         }),
         concatMap(async (initialAPI) => {
-          const env = process.env.NETWORKID!;
+          const env = import.meta.env.VITE_NETWORKID;
           return {
             connectedAPI: await initialAPI.connect(env),
             initialAPI,
@@ -130,6 +130,9 @@ export class MidnightBrowserWallet {
             : apis
         ),
         concatMap(async ({ connectedAPI, initialAPI }) => {
+          if (!connectedAPI) {
+            throw new Error("Connected API is undefined");
+          }
           const serviceUriConfig = await connectedAPI.getConfiguration();
           const status = await connectedAPI.getConnectionStatus();
           const dustAddress = await connectedAPI.getDustAddress();

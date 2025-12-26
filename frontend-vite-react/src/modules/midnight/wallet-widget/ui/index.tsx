@@ -8,20 +8,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./common/dialog";
-import { useAssets, useWallet } from "@meshsdk/midnight-react";
 import ConnectedButton from "./connected-button";
 import { screens } from "./data";
 import ScreenMain from "./screen-main";
+import { useWallet } from "../hooks/useWallet";
 
 export const MidnightWallet = () => {
-  const { open, setOpen } = useWallet();
+  const { open, setOpen, status } = useWallet();
   const [screen] = useState("main");
-  const { hasConnectedWallet } = useAssets();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div>
-        {!hasConnectedWallet ? (
+        {status?.status === "disconnected" ? (
           <DialogTrigger asChild>
             <Button variant="outline" className="">
               Connect Wallet

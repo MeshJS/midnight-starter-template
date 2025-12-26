@@ -5,26 +5,25 @@ import {
   DropdownMenuTrigger,
 } from "./common/dropdown-menu";
 import { Button } from "./common/button";
-import { useAssets, useWallet } from "@meshsdk/midnight-react";
+import { useWallet } from "../hooks/useWallet";
 
 export default function ConnectedButton() {
-  const { disconnect } = useWallet();
-  const { address } = useAssets();
+  const { disconnect, unshieldedAddress } = useWallet();  
 
   return (
     <>
-      {address && (
+      {unshieldedAddress && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
-              {address.slice(0, 4)}...{address.slice(-4)}
+              {unshieldedAddress.unshieldedAddress.slice(0, 4)}...{unshieldedAddress.unshieldedAddress.slice(-4)}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start">
             <DropdownMenuItem
               className="cursor-pointer"
               onClick={() => {
-                navigator.clipboard.writeText(address);
+                navigator.clipboard.writeText(unshieldedAddress.unshieldedAddress);
               }}
             >
               Copy Address

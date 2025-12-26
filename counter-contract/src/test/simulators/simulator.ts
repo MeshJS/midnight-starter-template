@@ -21,9 +21,9 @@ import {
   CostModel,
   CircuitResults,
   CoinPublicKey,
-  emptyZswapLocalState
+  emptyZswapLocalState,
+  ContractAddress
 } from "@midnight-ntwrk/compact-runtime";
-import { ContractAddress } from "@midnight-ntwrk/onchain-runtime";
 
 const config = new LogicTestingConfig();
 export const logger = await createLogger(config.logDir);

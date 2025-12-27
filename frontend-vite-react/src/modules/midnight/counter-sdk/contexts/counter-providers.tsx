@@ -1,6 +1,5 @@
 import * as ledger from "@midnight-ntwrk/ledger-v6";
 import {
-  type FinalizedTxData,
   type MidnightProvider,
   type WalletProvider,
   type BalancedProvingRecipe,
@@ -17,21 +16,19 @@ import type {
   CounterCircuits,
   CounterPrivateStateId,
 } from "../api/common-types";
+import { CounterProviders } from "../api/common-types";
+import { useWallet } from "../../wallet-widget/hooks/useWallet";
+import { WrappedPrivateStateProvider } from "../../wallet-widget/utils/ProvidersWrappers/privateStateProvider";
 import {
-  CachedFetchZkConfigProvider,
+  ActionMessages,
+  ProviderAction,
+  WrappedPublicDataProvider,
+} from "../../wallet-widget/utils/ProvidersWrappers/publicDataProvider";
+import { CachedFetchZkConfigProvider } from "../../wallet-widget/utils/ProvidersWrappers/zkConfigProvider";
+import {
   noopProofClient,
   proofClient,
-  WrappedPrivateStateProvider,
-  WrappedPublicDataProvider,
-} from "@meshsdk/midnight-core";
-import { CounterProviders } from "../api/common-types";
-import { Transaction as ZswapTransaction } from "@midnight-ntwrk/zswap";
-import {
-  getLedgerNetworkId,
-  getZswapNetworkId,
-} from "@midnight-ntwrk/midnight-js-network-id";
-import { ProviderCallbackAction } from "@meshsdk/midnight-core";
-import { useAssets, useWallet } from "@meshsdk/midnight-react";
+} from "../../wallet-widget/utils/ProvidersWrappers/proofClient";
 
 export interface ProvidersState {
   privateStateProvider: PrivateStateProvider<typeof CounterPrivateStateId>;
@@ -56,12 +53,9 @@ export const ProvidersContext = createContext<ProvidersState | undefined>(
 export const Provider = ({ children, logger }: ProviderProps) => {
   const [flowMessage, setFlowMessage] = useState<string | undefined>(undefined);
 
-  const { uris, coinPublicKey, encryptionPublicKey } = useAssets();
-  const { midnightBrowserWalletInstance } = useWallet();
+  const { serviceUriConfig, shieldedAddresses, connectedAPI } = useWallet();
 
-  const actionMessages = useMemo<
-    Record<ProviderCallbackAction, string | undefined>
-  >(
+  const actionMessages = useMemo<ActionMessages>(
     () => ({
       proveTxStarted: "Proving transaction...",
       proveTxDone: undefined,
@@ -79,7 +73,7 @@ export const Provider = ({ children, logger }: ProviderProps) => {
   );
 
   const providerCallback = useCallback(
-    (action: ProviderCallbackAction): void => {
+    (action: ProviderAction): void => {
       setFlowMessage(actionMessages[action]);
     },
     [actionMessages]
@@ -100,14 +94,17 @@ export const Provider = ({ children, logger }: ProviderProps) => {
 
   const publicDataProvider: PublicDataProvider | undefined = useMemo(
     () =>
-      uris
+      serviceUriConfig
         ? new WrappedPublicDataProvider(
-            indexerPublicDataProvider(uris.indexerUri, uris.indexerWsUri),
+            indexerPublicDataProvider(
+              serviceUriConfig.indexerUri,
+              serviceUriConfig.indexerWsUri
+            ),
             providerCallback,
             logger
           )
         : undefined,
-    [uris, providerCallback, logger]
+    [serviceUriConfig, providerCallback, logger]
   );
 
   const zkConfigProvider = useMemo(() => {
@@ -124,63 +121,63 @@ export const Provider = ({ children, logger }: ProviderProps) => {
 
   const proofProvider = useMemo(
     () =>
-      uris
-        ? proofClient(uris.proverServerUri, providerCallback)
+      serviceUriConfig?.proverServerUri
+        ? proofClient(serviceUriConfig.proverServerUri, providerCallback)
         : noopProofClient(),
-    [uris, providerCallback]
+    [serviceUriConfig, providerCallback]
   );
 
   const walletProvider: WalletProvider = useMemo(
     () =>
-      midnightBrowserWalletInstance
+      connectedAPI
         ? {
             getCoinPublicKey(): ledger.CoinPublicKey {
-              return midnightBrowserWalletInstance._coinPublicKey as unknown as ledger.CoinPublicKey;
+              return shieldedAddresses?.shieldedCoinPublicKey as unknown as ledger.CoinPublicKey;
             },
             getEncryptionPublicKey(): ledger.EncPublicKey {
-              return midnightBrowserWalletInstance._encryptionPublicKey as unknown as ledger.EncPublicKey;
+              return shieldedAddresses?.shieldedEncryptionPublicKey as unknown as ledger.EncPublicKey;
             },
             async balanceTx(
-              tx: ledger.UnprovenTransaction,
-              newCoins?: ledger.ShieldedCoinInfo[]
+              tx: ledger.UnprovenTransaction
             ): Promise<BalancedProvingRecipe> {
-              // balanceTransaction returns a ProvingRecipe directly
+              const txString = tx as unknown as string;
               const provingRecipe =
-                await midnightBrowserWalletInstance.balanceAndProveTransaction(
-                  tx as unknown as ledger.Transaction<
-                    ledger.SignatureEnabled,
-                    ledger.Proofish,
-                    ledger.Bindingish
-                  >,
-                  newCoins
-                );
+                await connectedAPI.balanceSealedTransaction(txString);
               return provingRecipe as unknown as BalancedProvingRecipe;
             },
           }
         : {
-            coinPublicKey: "",
-            encryptionPublicKey: "",
+            getCoinPublicKey(): ledger.CoinPublicKey {
+              return "";
+            },
+            getEncryptionPublicKey(): ledger.EncPublicKey {
+              return "";
+            },
             balanceTx: () => Promise.reject(new Error("readonly")),
           },
-    [midnightBrowserWalletInstance, coinPublicKey, providerCallback]
+    [connectedAPI, providerCallback]
   );
 
   const midnightProvider: MidnightProvider = useMemo(
     () =>
-      midnightBrowserWalletInstance
+      connectedAPI
         ? {
-            submitTx: (tx: BalancedTransaction): Promise<TransactionId> => {
+            submitTx: (
+              tx: ledger.FinalizedTransaction
+            ): Promise<ledger.TransactionId> => {
+              const txString = tx as unknown as string;
               providerCallback("submitTxStarted");
-              return midnightBrowserWalletInstance
-                ._walletInstance!.submitTransaction(tx)
+              connectedAPI
+                .submitTransaction(txString)
                 .finally(() => providerCallback("submitTxDone"));
+              return Promise.resolve("TransactionId");
             },
           }
         : {
-            submitTx: (): Promise<TransactionId> =>
+            submitTx: (): Promise<ledger.TransactionId> =>
               Promise.reject(new Error("readonly")),
           },
-    [midnightBrowserWalletInstance, providerCallback]
+    [connectedAPI, providerCallback]
   );
 
   const combinedProviders: ProvidersState = useMemo(() => {

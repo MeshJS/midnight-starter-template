@@ -1,10 +1,10 @@
 import { Loading } from "@/components/loading";
-import { useContractSubscription } from "@/modules/midnight/counter-ui";
 import { useEffect, useState } from "react";
 import { RefreshCw, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
+import { useContractSubscription } from "@/modules/midnight/counter-sdk/hooks/use-contract-subscription";
 
 export const Counter = () => {
   const { deployedContractAPI, derivedState, onDeploy, providers } =

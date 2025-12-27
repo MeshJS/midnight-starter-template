@@ -1,17 +1,15 @@
-import {  
-  ContractDeployment,
-  useProviders,
-  useDeployedContracts,
-  ContractFollow,
-} from "@/modules/midnight/counter-ui";
+
 import { DerivedState } from "../api/common-types";
 import { useCallback, useEffect, useState } from "react";
 import { ContractControllerInterface } from "../api/contractController";
-import { useAssets } from "@meshsdk/midnight-react";
 import { Observable } from "rxjs";
+import { useWallet } from "../../wallet-widget/hooks/useWallet";
+import { ContractDeployment, ContractFollow } from "../contexts";
+import { useDeployedContracts } from "./use-deployment";
+import { useProviders } from "./use-providers";
 
 export const useContractSubscription = () => {
-  const { hasConnectedWallet } = useAssets();
+  const { status } = useWallet();
   const providers = useProviders();
   const deploy = useDeployedContracts();
 
@@ -34,10 +32,10 @@ export const useContractSubscription = () => {
   }, [deploy, setCounterDeploymentObservable]);
 
   useEffect(() => {
-    if (hasConnectedWallet && providers) {
+    if (status?.status === "connected" && providers) {
       void onJoin();
     }
-  }, [onJoin, hasConnectedWallet, providers]);
+  }, [onJoin, status?.status, providers]);
 
   useEffect(() => {
     if (!counterDeploymentObservable) {

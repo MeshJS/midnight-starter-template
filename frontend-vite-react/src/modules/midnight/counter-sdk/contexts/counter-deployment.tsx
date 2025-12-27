@@ -5,8 +5,9 @@ import { type Logger } from 'pino';
 import type { DeployedAPIProvider } from './counter-deployment-class';
 import { useLocalState } from '../hooks/use-localStorage';
 import { DeployedTemplateManager } from './counter-deployment-class';
-import { useProviders } from '../hooks';
+
 import { ContractAddress } from '@midnight-ntwrk/compact-runtime';
+import { useProviders } from '../hooks/use-providers';
 
 export const DeployedProviderContext = createContext<DeployedAPIProvider | undefined>(undefined);
 

@@ -1,5 +1,6 @@
 import type { PrivateStateProvider, PrivateStateId } from '@midnight-ntwrk/midnight-js-types';
 import type { Logger } from 'pino';
+
 export class WrappedPrivateStateProvider<PSI extends PrivateStateId = PrivateStateId, PS = any>
   implements PrivateStateProvider<PSI, PS>
 {

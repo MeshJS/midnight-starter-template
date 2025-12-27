@@ -18,7 +18,7 @@ import {
   throwError,
   timeout,
 } from "rxjs";
-import { checkProofServerStatus } from "../../utils/proofServer/utils";
+
 import {
   DustAddress,
   DustBalance,
@@ -27,6 +27,7 @@ import {
   UnshieldedAddress,
   UnshieldedBalanceDappConnector,
 } from "./common-types";
+import { checkProofServerStatus } from "../utils/proofServer/utils";
 
 declare global {
   interface Window {

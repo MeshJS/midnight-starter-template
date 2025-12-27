@@ -26,9 +26,9 @@ export const MidnightWallet = () => {
   const [selectedNetwork, setSelectedNetwork] = useState(networkID.PREVIEW);
 
   useEffect(() => {
-    const networkID = MidnightBrowserWallet.getMidnightWalletConnected()
-      .networkID;
-    if (networkID === null) return;     
+    const networkID =
+      MidnightBrowserWallet.getMidnightWalletConnected().networkID;
+    if (networkID === null) return;
     setSelectedNetwork(networkID as SetStateAction<networkID>);
   }, []);
 
@@ -47,7 +47,7 @@ export const MidnightWallet = () => {
       </div>
 
       <DialogContent
-        className="sm:max-w-[425px] justify-center items-center"
+        className="sm:max-w-[425px] justify-center items-center border-2 border-white dark:border-gray-800"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
         <Header
@@ -111,23 +111,46 @@ function Header({
 function Footer() {
   return (
     <DialogFooter className="justify-center text-sm">
-      <a
-        href="https://meshjs.dev/"
-        target="_blank"
-        className="flex gap-1 items-center justify-center text-accent-foreground hover:text-zinc-500 fill-foreground hover:fill-zinc-500 dark:hover:text-orange-200 dark:hover:fill-zinc-200"
-      >
-        <span className="">Powered by</span>
-        <svg
-          width={22}
-          height={22}
-          enableBackground="new 0 0 300 200"
-          viewBox="0 0 300 200"
-          xmlns="http://www.w3.org/2000/svg"
+      <div className="flex gap-1 items-center justify-center">
+        <span className="text-accent-foreground">Powered by</span>
+        <a
+          href="https://meshjs.dev/"
+          target="_blank"
+          className="flex items-center gap-1 text-accent-foreground hover:text-zinc-500 fill-foreground hover:fill-zinc-500 dark:hover:text-orange-200 dark:hover:fill-zinc-200"
         >
-          <path d="m289 127-45-60-45-60c-.9-1.3-2.4-2-4-2s-3.1.7-4 2l-37 49.3c-2 2.7-6 2.7-8 0l-37-49.3c-.9-1.3-2.4-2-4-2s-3.1.7-4 2l-45 60-45 60c-1.3 1.8-1.3 4.2 0 6l45 60c.9 1.3 2.4 2 4 2s3.1-.7 4-2l37-49.3c2-2.7 6-2.7 8 0l37 49.3c.9 1.3 2.4 2 4 2s3.1-.7 4-2l37-49.3c2-2.7 6-2.7 8 0l37 49.3c.9 1.3 2.4 2 4 2s3.1-.7 4-2l45-60c1.3-1.8 1.3-4.2 0-6zm-90-103.3 32.5 43.3c1.3 1.8 1.3 4.2 0 6l-32.5 43.3c-2 2.7-6 2.7-8 0l-32.5-43.3c-1.3-1.8-1.3-4.2 0-6l32.5-43.3c2-2.7 6-2.7 8 0zm-90 0 32.5 43.3c1.3 1.8 1.3 4.2 0 6l-32.5 43.3c-2 2.7-6 2.7-8 0l-32.5-43.3c-1.3-1.8-1.3-4.2 0-6l32.5-43.3c2-2.7 6-2.7 8 0zm-53 152.6-32.5-43.3c-1.3-1.8-1.3-4.2 0-6l32.5-43.3c2-2.7 6-2.7 8 0l32.5 43.3c1.3 1.8 1.3 4.2 0 6l-32.5 43.3c-2 2.7-6 2.7-8 0zm90 0-32.5-43.3c-1.3-1.8-1.3-4.2 0-6l32.5-43.3c2-2.7 6-2.7 8 0l32.5 43.3c1.3 1.8 1.3 4.2 0 6l-32.5 43.3c-2 2.7-6 2.7-8 0zm90 0-32.5-43.3c-1.3-1.8-1.3-4.2 0-6l32.5-43.3c2-2.7 6-2.7 8 0l32.5 43.3c1.3 1.8 1.3 4.2 0 6l-32.5 43.3c-2 2.7-6 2.7-8 0z" />
-        </svg>
-        <span className="">Mesh SDK</span>
-      </a>
+          <img
+            src="/meshlogo-with-title-white.svg"
+            alt="Mesh"
+            className="h-4 dark:block hidden object-contain"
+            style={{ width: "auto" }}
+          />
+          <img
+            src="/meshlogo-with-title-black.svg"
+            alt="Mesh"
+            className="h-4 dark:hidden block object-contain"
+            style={{ width: "auto" }}
+          />
+        </a>
+        <span className="mx-1 text-accent-foreground">&</span>
+        <a
+          href="https://eddalabs.io/"
+          target="_blank"
+          className="flex items-center gap-1 text-accent-foreground hover:text-zinc-500 fill-foreground hover:fill-zinc-500 dark:hover:text-orange-200 dark:hover:fill-zinc-200"
+        >
+          <img
+            src="/transparent-logo-white.svg"
+            alt="Edda Labs"
+            className="h-3 dark:block hidden object-contain"
+            style={{ width: "auto" }}
+          />
+          <img
+            src="/transparent-logo-black.svg"
+            alt="Edda Labs"
+            className="h-3 dark:hidden block object-contain"
+            style={{ width: "auto" }}
+          />
+        </a>
+      </div>
     </DialogFooter>
   );
 }

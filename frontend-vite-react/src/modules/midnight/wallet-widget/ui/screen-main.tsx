@@ -1,25 +1,12 @@
 import { useWallet } from "../hooks/useWallet";
 import { useWalletList } from "../hooks/useWalletList";
-import IconLace from "./common/icons/icon-lace";
+import { walletsListFormat } from "./common/common-values";
 import { TooltipProvider } from "./common/tooltip";
 import WalletIcon from "./wallet-icon";
-import { type JSX } from "react";
 
-export default function ScreenMain({
-  setOpen,
-}: {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  setOpen: Function;
-}) {
+export default function ScreenMain({ selectedNetwork, setOpen }: { selectedNetwork: string; setOpen: Function }) {
   const wallets = useWalletList();
   const { connectWallet } = useWallet();
-
-  // Example config map for wallet overrides
-  const walletsConfig: {
-    [key: string]: { key: string; displayName: string; icon: JSX.Element };
-  } = {
-    lace: { key: "mnLace", displayName: "LACE", icon: <IconLace /> },
-  };
 
   return (
     <TooltipProvider>
@@ -30,7 +17,7 @@ export default function ScreenMain({
         }}
       >
         {wallets.map((wallet, index) => {
-          const config = walletsConfig[wallet.name];
+          const config = walletsListFormat[wallet.name];
           if (!config) return null; // Skip rendering if config is not found
           const walletKey = config.key;
           const displayName = config.displayName;
@@ -42,7 +29,7 @@ export default function ScreenMain({
               iconReactNode={icon}
               name={displayName}
               action={() => {
-                connectWallet(walletKey);
+                connectWallet(walletKey, selectedNetwork);
                 setOpen(false);
               }}
             />
@@ -52,3 +39,4 @@ export default function ScreenMain({
     </TooltipProvider>
   );
 }
+

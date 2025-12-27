@@ -19,7 +19,14 @@ import {
   timeout,
 } from "rxjs";
 import { checkProofServerStatus } from "../../utils/proofServer/utils";
-import {  DustAddress, DustBalance, ShieldedAddress, ShieldedBalance, UnshieldedAddress, UnshieldedBalanceDappConnector } from "./common-types";
+import {
+  DustAddress,
+  DustBalance,
+  ShieldedAddress,
+  ShieldedBalance,
+  UnshieldedAddress,
+  UnshieldedBalanceDappConnector,
+} from "./common-types";
 
 declare global {
   interface Window {
@@ -35,7 +42,7 @@ export class MidnightBrowserWallet {
     public status: ConnectionStatus | undefined,
     public dustAddress: DustAddress | undefined,
     public dustBalance: DustBalance | undefined,
-    public shieldedAddresses: ShieldedAddress  | undefined,
+    public shieldedAddresses: ShieldedAddress | undefined,
     public shieldedBalances: ShieldedBalance | undefined,
     public unshieldedAddress: UnshieldedAddress | undefined,
     public unshieldedBalances: UnshieldedBalanceDappConnector | undefined,
@@ -68,15 +75,18 @@ export class MidnightBrowserWallet {
     return wallets;
   }
 
-  static getMidnightWalletConnected(): string | null {
-    return window.localStorage.getItem("rdns-connected");
+  static getMidnightWalletConnected(): { rdns: string | null; networkID: string | null } {
+    const rdns = window.localStorage.getItem("rdns-connected");
+    const networkID = window.localStorage.getItem("network-id");
+    return { rdns, networkID };
   }
 
-  static setMidnightWalletConnected(rdns: string, logger?: Logger): void {
+  static setMidnightWalletConnected(rdns: string, networkID: string, logger?: Logger): void {
     if (logger) {
       logger.trace(`Setting wallet auto connect to ${rdns}`);
     }
     window.localStorage.setItem("rdns-connected", rdns);
+    window.localStorage.setItem("network-id", networkID);
   }
 
   static deleteMidnightWalletConnected(logger?: Logger): void {
@@ -84,10 +94,12 @@ export class MidnightBrowserWallet {
       logger.trace("Deleting wallet auto connect ");
     }
     window.localStorage.removeItem("rdns-connected");
+    window.localStorage.removeItem("network-id");
   }
 
   static async connectToWallet(
     rdns: string,
+    networkID: string,
     logger?: Logger
   ): Promise<MidnightBrowserWallet> {
     return firstValueFrom(
@@ -114,10 +126,9 @@ export class MidnightBrowserWallet {
               return new Error("Could not find wallet initial API");
             }),
         }),
-        concatMap(async (initialAPI) => {
-          const env = import.meta.env.VITE_NETWORKID;
+        concatMap(async (initialAPI) => {          
           return {
-            connectedAPI: await initialAPI.connect(env),
+            connectedAPI: await initialAPI.connect(networkID),
             initialAPI,
           };
         }),
@@ -163,10 +174,11 @@ export class MidnightBrowserWallet {
           );
 
           // Call the static method
-          MidnightBrowserWallet.setMidnightWalletConnected(
-            initialAPI.rdns,
-            logger
-          );
+          const networkID = status.status === "connected" ? status.networkId : null;
+          if (networkID === null) {
+            throw new Error("Network ID is null");
+          }
+          MidnightBrowserWallet.setMidnightWalletConnected(rdns, networkID, logger);
 
           return wallet;
         })

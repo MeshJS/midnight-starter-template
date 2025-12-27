@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "./common/button";
 import {
   Dialog,
@@ -8,19 +7,35 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./common/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./common/dropdown-menu";
+import { ChevronDown, Network } from "lucide-react";
+import { networkID } from "./common/common-values";
 import ConnectedButton from "./connected-button";
-import { screens } from "./data";
 import ScreenMain from "./screen-main";
 import { useWallet } from "../hooks/useWallet";
+import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { MidnightBrowserWallet } from "../api/walletController";
 
 export const MidnightWallet = () => {
   const { open, setOpen, status } = useWallet();
-  const [screen] = useState("main");
+  const [selectedNetwork, setSelectedNetwork] = useState(networkID.PREVIEW);
+
+  useEffect(() => {
+    const networkID = MidnightBrowserWallet.getMidnightWalletConnected()
+      .networkID;
+    if (networkID === null) return;     
+    setSelectedNetwork(networkID as SetStateAction<networkID>);
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div>
-        {status?.status === "disconnected" ? (
+        {status?.status === undefined ? (
           <DialogTrigger asChild>
             <Button variant="outline" className="">
               Connect Wallet
@@ -35,30 +50,60 @@ export const MidnightWallet = () => {
         className="sm:max-w-[425px] justify-center items-center"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
-        <Header screen={screen} />
-        {screen == "main" && <ScreenMain setOpen={setOpen} />}
+        <Header
+          selectedNetwork={selectedNetwork}
+          setSelectedNetwork={setSelectedNetwork}
+        />
+        <ScreenMain setOpen={setOpen} selectedNetwork={selectedNetwork} />
         <Footer />
       </DialogContent>
     </Dialog>
   );
 };
 
-interface HeaderProps {
-  screen: string;
-  setScreen: (screen: string) => void;
-}
-
-function Header({ screen }: Omit<HeaderProps, "setScreen">) {
+function Header({
+  selectedNetwork,
+  setSelectedNetwork,
+}: {
+  selectedNetwork: string;
+  setSelectedNetwork: Dispatch<SetStateAction<networkID>>;
+}) {
+  const getInitials = (network: string) => {
+    if (network === "preprod") return "PROD";
+    return network.substring(0, 4).toUpperCase();
+  };
   return (
-    <DialogHeader>
-      <DialogTitle className="flex justify-between">
-        <span style={{ width: "24px" }}></span>
-        <span className="">
-          {/* @ts-expect-error any type */}
-          {screens[screen].title}
-        </span>
-        <span style={{ width: "24px" }}></span>
+    <DialogHeader className="pb-4 space-y-3">
+      <DialogTitle className="text-lg font-semibold text-center">
+        Connect Wallet
       </DialogTitle>
+
+      <div className="flex justify-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs font-medium"
+            >
+              <Network className="h-3 w-3 mr-1" />
+              {getInitials(selectedNetwork)}
+              <ChevronDown className="h-3 w-3 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="min-w-[140px]">
+            {Object.values(networkID).map((network) => (
+              <DropdownMenuItem
+                key={network}
+                onClick={() => setSelectedNetwork(network)}
+                className={selectedNetwork === network ? "bg-accent" : ""}
+              >
+                {network}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </DialogHeader>
   );
 }

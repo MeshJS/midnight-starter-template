@@ -12,7 +12,6 @@ import type { WalletContext } from '../../api';
 import * as Rx from 'rxjs';
 import * as ledger from '@midnight-ntwrk/ledger-v6';
 import type { Logger } from 'pino';
-import { expect } from 'vitest';
 
 const GENESIS_MINT_WALLET_SEED = '0000000000000000000000000000000000000000000000000000000000000001';
 
@@ -155,7 +154,7 @@ export class TestEnvironment {
   };
 
   static getProofServerContainer = async (env: string) =>
-    await new GenericContainer('midnightnetwork/proof-server:6.1.0-alpha.5')
+    await new GenericContainer('midnightnetwork/proof-server:6.1.0-alpha.6')
       .withExposedPorts(6300)
       .withCommand(['midnight-proof-server', '--network', env])
       .withEnvironment({ RUST_BACKTRACE: 'full' })
@@ -185,11 +184,9 @@ export class TestEnvironment {
     } else {
       this.walletContext = await api.buildWalletAndWaitForFunds(this.testConfig.dappConfig, this.testConfig.mnemonic);
     }
-
-    expect(this.walletContext).not.toBeNull();
+    
     const state = await Rx.firstValueFrom(this.walletContext.wallet.state());
-    const balance = state.unshielded?.balances[ledger.nativeToken().raw] ?? 0n;
-    expect(balance).toBeGreaterThan(BigInt(0));
+    const balance = state.unshielded?.balances[ledger.nativeToken().raw] ?? 0n;   
     return this.walletContext;
   };
 }

@@ -20,7 +20,7 @@
     "test-preview": "RUN_ENV_TESTS=true TEST_ENV=preview vitest run counter.test.ts",
     "tui-undeployed": "node --experimental-specifier-resolution=node --loader ts-node/esm src/tui_standalone.ts",     
     "tui-preview": "node --experimental-specifier-resolution=node --loader ts-node/esm src/tui_preview.ts", 
-    "setup-undeployed": "vitest run standalone.test.ts", 
+    "setup-undeployed": "node --experimental-specifier-resolution=node --loader ts-node/esm src/setup/standalone.ts", 
     "ps-undeployed": "docker compose -f ps-undeployed.yml up",
     "ps-preview": "docker compose -f ps-preview.yml up",               
     "build": "rm -rf dist && tsc --project tsconfig.build.json",

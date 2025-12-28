@@ -10,7 +10,7 @@ import {
 } from "@midnight-ntwrk/midnight-js-types";
 import { createContext, useCallback, useMemo, useState } from "react";
 import { indexerPublicDataProvider } from "@midnight-ntwrk/midnight-js-indexer-public-data-provider";
-import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
+// import { levelPrivateStateProvider } from "@midnight-ntwrk/midnight-js-level-private-state-provider";
 import { Logger } from "pino";
 import type {
   CounterCircuits,
@@ -18,7 +18,7 @@ import type {
 } from "../api/common-types";
 import { CounterProviders } from "../api/common-types";
 import { useWallet } from "../../wallet-widget/hooks/useWallet";
-import { WrappedPrivateStateProvider } from "../../wallet-widget/utils/providersWrappers/privateStateProvider";
+// import { WrappedPrivateStateProvider } from "../../wallet-widget/utils/providersWrappers/privateStateProvider";
 import {
   ActionMessages,
   ProviderAction,

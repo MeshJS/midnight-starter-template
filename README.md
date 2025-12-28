@@ -8,6 +8,8 @@ A starter template for building on Midnight Network with React frontend and smar
 - [Docker](https://docs.docker.com/get-docker/)
 - [Git LFS](https://git-lfs.com/) (for large files)
 - [Compact](https://docs.midnight.network/relnotes/compact-tools) (Midnight developer tools)
+- [Lace](https://chromewebstore.google.com/detail/hgeekaiplokcnmakghbdfbgnlfheichg?utm_source=item-share-cb) (Browser wallet extension)
+- [Faucet](faucet.preview.midnight.network) (Preview Network Faucet)
 
 ## 🛠️ Setup
 

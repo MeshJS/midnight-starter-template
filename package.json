@@ -13,7 +13,7 @@
   "scripts": {
     "compact": "turbo run compact",
     "build": "turbo run build",
-    "build-production": "git lfs pull && cd counter-contract && npm run build && cd ../frontend-vite-react && npm run build",
+    "build-production": "git lfs install && git lfs pull && cd counter-contract && npm run build && cd ../frontend-vite-react && npm run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "dev:proof-server": "cd counter-cli && npm run run-proof-server-testnet",

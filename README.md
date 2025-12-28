@@ -4,7 +4,7 @@ A starter template for building on Midnight Network with React frontend and smar
 
 ## 📦 Prerequisites
 
-- [Node.js](https://nodejs.org/) (v18+) & [npm](https://www.npmjs.com/) (v9+)
+- [Node.js](https://nodejs.org/) (v23+) & [npm](https://www.npmjs.com/) (v11+)
 - [Docker](https://docs.docker.com/get-docker/)
 - [Git LFS](https://git-lfs.com/) (for large files)
 - [Compact](https://docs.midnight.network/relnotes/compact-tools) (Midnight developer tools)
@@ -28,18 +28,19 @@ curl --proto '=https' --tlsv1.2 -LsSf \
 ```
 ```bash
 # Install the latest compiler
-compact update
+# Compact compiler version 0.27 should be downloaded manually. Compact tools does not support it currently. 
+compact update +0.27.0
 ```
 
 ### 3️⃣ Install Node.js and docker
-- [Node.js](https://nodejs.org/) (v18+) & [npm](https://www.npmjs.com/) (v9+)
+- [Node.js](https://nodejs.org/) & [npm](https://www.npmjs.com/)
 - [Docker](https://docs.docker.com/get-docker/)
 
 ### 4️⃣ Verify Installation
 ```bash
 # Check versions
-node -v  # v18+
-npm -v   # v9+
+node -v  
+npm -v   
 docker -v
 git lfs version
 compact check  # Should show latest version
@@ -53,50 +54,37 @@ compact check  # Should show latest version
 └── frontend-vite-react/ # React application
 ```
 
-## 🔗 Network Configuration
+## 🔗 Setup Instructions
 
-### Testnet Network
-
-1. **Set Network ID**
-   - Open `frontend-vite-react/src/App.tsx`
-   - Ensure `setNetworkId(NetworkId.TestNet)` is set  
-
-2. **Configure Contract Address**
-   - In the same file, locate the `contractAddress` constant
-   - Replace with a Counter Testnet-network contract address
-
-3. **Start Development**
-   ```bash
+### Install Project Dependencies and compile contracts
+  ```bash
    # In one terminal (from project root)
    npm install
    npm run build
-   npm run start-app-testnet
    ```
 
-### Undeployed/Local Network
+### Setup Env variables
 
-1. **Configure Your own wallet Address**
-   - Open `counter-cli/src/scripts/prepare-standalone.test.ts`
-   - Replace with your own undeployed-network wallet address  
+1. **Create .env file from template under counter-cli folder**
+   - [`counter-cli/.env_template`](./counter-cli/.env_template)
 
-2. **Set Network ID**
-   - Open `frontend-vite-react/src/App.tsx`
-   - Change to `setNetworkId(NetworkId.Undeployed)`  
+2. **Create .env file from template under frontend-vite-react folder**
+   - [`frontend-vite-react/.env_template`](./frontend-vite-react/.env_template)
 
-3. **Start Local Development**
-   ```bash
+### Start Development In Preview Network or
+   ```bash   
    # In one terminal (from project root)
-   npm install
-   npm run build
-   npm run dev:undeployed-instances
+   npm run dev:frontend
+   ```
+
+### Start Development In Undeployed Network
+   ```bash   
+   # In one terminal (from project root)
+   npm run setup-standalone
    
    # In another terminal (from project root)
-   npm run start-app-undeployed
+   npm run dev:frontend
    ```
-
-3. **Configure Contract Address**
-   - You will need to deploy a new contract in the undeployed-network first
-   - Open `frontend-vite-react/src/App.tsx`, locate the `contractAddress` constant, and replace it with the newly deployed contract address
 ---
 
 <div align="center"><p>Built with ❤️ by <a href="https://meshjs.dev">Mesh</a> × <a href="https://eddalabs.io">Edda Labs</a></p></div>

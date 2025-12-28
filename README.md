@@ -1,4 +1,4 @@
-# 🚀 MESH - Midnight Starter Template
+# 🚀 MESH - EDDA - Midnight Starter Template
 A starter template for building on Midnight Network with React frontend and smart contract integration.
 ![Midnight Starter Template](./starter-template-optimized.png)
 

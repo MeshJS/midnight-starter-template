@@ -18,17 +18,24 @@ import type {
 } from "../api/common-types";
 import { CounterProviders } from "../api/common-types";
 import { useWallet } from "../../wallet-widget/hooks/useWallet";
-import { WrappedPrivateStateProvider } from "../../wallet-widget/utils/ProvidersWrappers/privateStateProvider";
+import { WrappedPrivateStateProvider } from "../../wallet-widget/utils/providersWrappers/privateStateProvider";
 import {
   ActionMessages,
   ProviderAction,
   WrappedPublicDataProvider,
-} from "../../wallet-widget/utils/ProvidersWrappers/publicDataProvider";
-import { CachedFetchZkConfigProvider } from "../../wallet-widget/utils/ProvidersWrappers/zkConfigProvider";
+} from "../../wallet-widget/utils/providersWrappers/publicDataProvider";
+import { CachedFetchZkConfigProvider } from "../../wallet-widget/utils/providersWrappers/zkConfigProvider";
 import {
   noopProofClient,
   proofClient,
-} from "../../wallet-widget/utils/ProvidersWrappers/proofClient";
+} from "../../wallet-widget/utils/providersWrappers/proofClient";
+import { inMemoryPrivateStateProvider } from "../../wallet-widget/utils/customImplementations/in-memory-private-state-provider";
+import { CounterPrivateState } from "@meshsdk/counter-contract";
+import {
+  fromHex,
+  ShieldedCoinInfo,
+  toHex,
+} from "@midnight-ntwrk/compact-runtime";
 
 export interface ProvidersState {
   privateStateProvider: PrivateStateProvider<typeof CounterPrivateStateId>;
@@ -53,7 +60,7 @@ export const ProvidersContext = createContext<ProvidersState | undefined>(
 export const Provider = ({ children, logger }: ProviderProps) => {
   const [flowMessage, setFlowMessage] = useState<string | undefined>(undefined);
 
-  const { serviceUriConfig, shieldedAddresses, connectedAPI } = useWallet();
+  const { serviceUriConfig, shieldedAddresses, connectedAPI, status } = useWallet();
 
   const actionMessages = useMemo<ActionMessages>(
     () => ({
@@ -83,13 +90,14 @@ export const Provider = ({ children, logger }: ProviderProps) => {
     typeof CounterPrivateStateId
   > = useMemo(
     () =>
-      new WrappedPrivateStateProvider(
-        levelPrivateStateProvider({
-          privateStateStoreName: "counter-private-state",
-        }),
-        logger
-      ),
-    [logger]
+      // new WrappedPrivateStateProvider(
+      //   levelPrivateStateProvider({
+      //     privateStateStoreName: "counter-private-state",
+      //   }),
+      //   logger
+      // ),
+      inMemoryPrivateStateProvider<string, CounterPrivateState>(),
+    [logger, status]
   );
 
   const publicDataProvider: PublicDataProvider | undefined = useMemo(
@@ -104,7 +112,7 @@ export const Provider = ({ children, logger }: ProviderProps) => {
             logger
           )
         : undefined,
-    [serviceUriConfig, providerCallback, logger]
+    [serviceUriConfig, providerCallback, logger, status]
   );
 
   const zkConfigProvider = useMemo(() => {
@@ -117,14 +125,14 @@ export const Provider = ({ children, logger }: ProviderProps) => {
       fetch.bind(window),
       () => {}
     );
-  }, []);
+  }, [status]);
 
   const proofProvider = useMemo(
     () =>
       serviceUriConfig?.proverServerUri
         ? proofClient(serviceUriConfig.proverServerUri, providerCallback)
         : noopProofClient(),
-    [serviceUriConfig, providerCallback]
+    [serviceUriConfig, providerCallback, status]
   );
 
   const walletProvider: WalletProvider = useMemo(
@@ -138,12 +146,43 @@ export const Provider = ({ children, logger }: ProviderProps) => {
               return shieldedAddresses?.shieldedEncryptionPublicKey as unknown as ledger.EncPublicKey;
             },
             async balanceTx(
-              tx: ledger.UnprovenTransaction
+              tx: ledger.UnprovenTransaction,
+              newCoins?: ShieldedCoinInfo[],
+              ttl?: Date
             ): Promise<BalancedProvingRecipe> {
-              const txString = tx as unknown as string;
-              const provingRecipe =
-                await connectedAPI.balanceSealedTransaction(txString);
-              return provingRecipe as unknown as BalancedProvingRecipe;
+              try {
+                logger.info(
+                  { tx, newCoins, ttl },
+                  "Balancing transaction via wallet"
+                );
+                const serializedTx = toHex(tx.serialize());
+                const received =
+                  await connectedAPI.balanceUnsealedTransaction(serializedTx);
+                const transaction: ledger.Transaction<
+                  ledger.SignatureEnabled,
+                  ledger.PreProof,
+                  ledger.PreBinding
+                > = ledger.Transaction.deserialize<
+                  ledger.SignatureEnabled,
+                  ledger.PreProof,
+                  ledger.PreBinding
+                >(
+                  "signature",
+                  "pre-proof",
+                  "pre-binding",
+                  fromHex(received.tx)
+                );
+                return {
+                  type: "TransactionToProve",
+                  transaction: transaction,
+                };
+              } catch (e) {
+                logger.error(
+                  { error: e },
+                  "Error balancing transaction via wallet"
+                );
+                throw e;
+              }
             },
           }
         : {
@@ -155,29 +194,31 @@ export const Provider = ({ children, logger }: ProviderProps) => {
             },
             balanceTx: () => Promise.reject(new Error("readonly")),
           },
-    [connectedAPI, providerCallback]
+    [connectedAPI, providerCallback, status]
   );
 
   const midnightProvider: MidnightProvider = useMemo(
     () =>
       connectedAPI
         ? {
-            submitTx: (
+            submitTx: async (
               tx: ledger.FinalizedTransaction
             ): Promise<ledger.TransactionId> => {
-              const txString = tx as unknown as string;
-              providerCallback("submitTxStarted");
-              connectedAPI
-                .submitTransaction(txString)
-                .finally(() => providerCallback("submitTxDone"));
-              return Promise.resolve("TransactionId");
+              await connectedAPI.submitTransaction(toHex(tx.serialize()));
+              const txIdentifiers = tx.identifiers();
+              const txId = txIdentifiers[0]; // Return the first transaction ID
+              logger.info(
+                { txIdentifiers },
+                "Submitted transaction via wallet"
+              );
+              return txId;
             },
           }
         : {
             submitTx: (): Promise<ledger.TransactionId> =>
               Promise.reject(new Error("readonly")),
           },
-    [connectedAPI, providerCallback]
+    [connectedAPI, providerCallback, status]
   );
 
   const combinedProviders: ProvidersState = useMemo(() => {

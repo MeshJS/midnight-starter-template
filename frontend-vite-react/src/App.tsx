@@ -1,8 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import * as pino from "pino";
-import {
-  setNetworkId,
-} from "@midnight-ntwrk/midnight-js-network-id";
 import { MainLayout } from "./layouts/layout";
 import { Home } from "./pages/home/";
 import { Counter } from "./pages/counter";
@@ -14,14 +11,11 @@ import { CounterAppProvider } from "./modules/midnight/counter-sdk/contexts";
 export const logger = pino.pino({
   level: "trace",
 });
-// Update this network id, could be testnet or undeployed
-// const networkId = process.env.VITE_NETWORKID!;
-setNetworkId("preview");
-// Update this with your deployed contract address
-const contractAddress = process.env.CONTRACT_ADDRESS!; 
-export const MIDNIGHT_STORAGE_PASSWORD="your-secure-password-here" 
 
-function App() {
+// Update this with your deployed contract address
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS!; 
+
+function App() { 
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <MidnightMeshProvider logger={logger}>

@@ -1,27 +1,21 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { MidnightMeshProvider } from "@meshsdk/midnight-react";
 import * as pino from "pino";
-import { CounterAppProvider } from "@/modules/midnight/counter-ui";
-import {
-  NetworkId,
-  setNetworkId,
-} from "@midnight-ntwrk/midnight-js-network-id";
 import { MainLayout } from "./layouts/layout";
 import { Home } from "./pages/home/";
 import { Counter } from "./pages/counter";
 import { WalletUI } from "./pages/wallet-ui";
 import { ThemeProvider } from "./components/theme-provider";
+import { MidnightMeshProvider } from "./modules/midnight/wallet-widget/contexts/wallet";
+import { CounterAppProvider } from "./modules/midnight/counter-sdk/contexts";
 
 export const logger = pino.pino({
   level: "trace",
 });
-// Update this network id, could be testnet or undeployed
-setNetworkId(NetworkId.Undeployed);
-// Update this with your deployed contract address
-const contractAddress =
-  "0200616f9ecf9710f508bf13f7f98dacbed239a0f38fb289f08d532d7b367dd57505";
 
-function App() {
+// Update this with your deployed contract address
+const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS!; 
+
+function App() { 
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <MidnightMeshProvider logger={logger}>

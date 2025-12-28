@@ -1,0 +1,8 @@
+services:
+  proof-server:
+    image: "midnightnetwork/proof-server:6.1.0-alpha.6"
+    command: ["midnight-proof-server", "--network", "preview"]
+    ports:
+      - "6300:6300"
+    environment:
+      RUST_BACKTRACE: "full"

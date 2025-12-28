@@ -1,28 +1,42 @@
 services:
   proof-server:
     container_name: 'counter-proof-server'
-    image: "midnightnetwork/proof-server:4.0.0"
+    image: "midnightnetwork/proof-server:6.1.0-alpha.6"
+    command: ["midnight-proof-server", "--network", "undeployed"]
     ports:
       - "6300:6300"
     environment:
       RUST_BACKTRACE: "full"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:6300/version']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
   indexer:
     container_name: 'counter-indexer'
-    image: 'midnightntwrk/indexer-standalone:2.1.1'
+    image: 'midnightntwrk/indexer-standalone:3.0.0-alpha.19'
     ports:
       - '8088:8088'
-    command: ['-Dlogback.configurationFile=logback-json-file.xml']
     environment:
-      RUST_LOG: "indexer=info,chain_indexer=info,indexer_api=info,wallet_indexer=info,indexer_common=info,fastrace_opentelemetry=off,info"
-      # Random 32-byte hex-encoded secret used to make the standalone indexer run.
-      # Only needed to satisfy the config schema – not meant for secure use.
-      APP__INFRA__SECRET: "303132333435363738393031323334353637383930313233343536373839303132"
-      APP__INFRA__NODE__URL: "ws://node:9944"
+      RUST_LOG: 'indexer=debug,chain_indexer=debug,indexer_api=debug,wallet_indexer=debug,indexer_common=debug,fastrace_opentelemetry=off,info'
+      APP__INFRA__NODE__URL: 'ws://node:9944'
+      APP__APPLICATION__NETWORK_ID: 'undeployed'
+      APP__INFRA__STORAGE__PASSWORD: 'indexer'
+      APP__INFRA__PUB_SUB__PASSWORD: 'indexer'
+      APP__INFRA__LEDGER_STATE_STORAGE__PASSWORD: 'indexer'
+      APP__INFRA__SECRET: '303132333435363738393031323334353637383930313233343536373839303132'
+    healthcheck:
+      test: ['CMD-SHELL', 'cat /var/run/indexer-standalone/running']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     depends_on:
       node:
         condition: service_started
   node:
-    image: 'midnightnetwork/midnight-node:0.12.0'
+    image: 'midnightntwrk/midnight-node:0.18.0-rc.9'
     container_name: 'counter-node'
     ports:
       - "9944:9944"

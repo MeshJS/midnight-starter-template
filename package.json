@@ -16,7 +16,7 @@
     "build-production": "cd counter-contract && npm run build && cd ../frontend-vite-react && npm run build",    
     "setup-standalone": "cd counter-cli && npm run setup-undeployed",
     "dev:frontend": "cd frontend-vite-react && npm run dev",    
-    "lint": "turbo run lint"      
+    "lint": "turbo run lint"     
   },
   "engines": {
     "node": ">=18"

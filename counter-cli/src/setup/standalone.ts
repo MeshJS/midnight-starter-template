@@ -4,7 +4,7 @@ import { currentDir } from '../config';
 import { createLogger } from '../logger';
 import { TestEnvironment } from '../test/simulators/simulator';
 import 'dotenv/config';
-import { sendArbitraryUnshieldedToken } from '../test/utils/wallet-transfers';
+import { sendArbitraryUnshieldedToken, sendUnshieldedToken } from '../test/utils/wallet-transfers';
 
 const logDir = path.resolve(currentDir, '..', 'logs', 'setup-undeployed', `${new Date().toISOString()}.log`);
 const logger = await createLogger(logDir);
@@ -19,6 +19,7 @@ async function setupStandalone() {
   try {
     const address = process.env.MY_UNDEPLOYED_UNSHIELDED_ADDRESS!;
     const result = await sendArbitraryUnshieldedToken(wallet, address, 1000000000n);
+    // const result = await sendUnshieldedToken(wallet, address, 1n);
     logger.info(`address keystore ${wallet.unshieldedKeystore.getAddress()}`);
     logger.info(result);
   } catch (error) {

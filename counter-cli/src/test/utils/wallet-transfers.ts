@@ -7,6 +7,7 @@ import { MidnightBech32m, ShieldedAddress, UnshieldedAddress } from '@midnight-n
 //allows to transfer unshielded tokens
 //TODO: correct error with address
 export async function sendUnshieldedToken(wallet: api.WalletContext, address: string, amount: bigint): Promise<string> {
+
   const tokenTransfer: CombinedTokenTransfer[] = [
     {
       type: 'unshielded',
@@ -14,7 +15,7 @@ export async function sendUnshieldedToken(wallet: api.WalletContext, address: st
         {
           type: ledger.unshieldedToken().raw,
           amount: tokenValue(amount),
-          receiverAddress: wallet.unshieldedKeystore.getAddress(),
+          receiverAddress: address,
         },
       ],
     },

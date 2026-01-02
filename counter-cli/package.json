@@ -25,7 +25,12 @@
     "ps-preview": "docker compose -f ps-preview.yml up",               
     "build": "rm -rf dist && tsc --project tsconfig.build.json",
     "lint": "eslint src",
-    "typecheck": "tsc -p tsconfig.json --noEmit"   
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "private-provider-testing": "vitest run src/test/private-provider.test.ts",
+    "public-provider-testing": "vitest run src/test/public-provider.test.ts",
+    "zk-provider-testing": "vitest run src/test/zk-provider.test.ts",
+    "indexer-client-testing": "vitest run src/test/indexer-client.test.ts",
+    "wallet-testing": "vitest run src/test/wallet.test.ts"
   },
   "dependencies": {    
     "@meshsdk/counter-contract": "*"    

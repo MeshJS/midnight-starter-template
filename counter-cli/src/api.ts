@@ -479,9 +479,14 @@ export const configureProviders = async (walletContext: WalletContext, config: C
 
   const walletAndMidnightProvider = await createWalletAndMidnightProvider(walletContext);
   return {
+    //AES-256-GCM + PBKDF2
+    // WalletProvider for encryption uses Encryption Public Key (EPK)
     privateStateProvider: levelPrivateStateProvider<typeof CounterPrivateStateId>({
-      privateStateStoreName: contractConfig.privateStateStoreName,
-      walletProvider: walletAndMidnightProvider     
+      privateStateStoreName: contractConfig.privateStateStoreName,      
+      signingKeyStoreName: "signing-keys",
+      midnightDbName: "midnight-level-db",
+      // walletProvider: walletAndMidnightProvider,
+      privateStoragePasswordProvider: () => "1234567890123456"
     }),
     publicDataProvider: indexerPublicDataProvider(config.indexer, config.indexerWS),
     zkConfigProvider: new NodeZkConfigProvider<'increment'>(contractConfig.zkConfigPath),
